@@ -1,6 +1,8 @@
 package com.reddit.label;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -9,7 +11,10 @@ import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -155,13 +160,56 @@ public class SubredditIngestor {
 
     }
 
-    public void LocalDirectoryBuilder(Path rootDir) {
+    public static void LocalDirectoryBuilder(Path rootDir) {
 
+        Path subredditCsvPath = rootDir.resolve("subreddit_posts.csv");
+
+        if (!Files.exists(subredditCsvPath)) {
+            System.out.println(
+                String.format("Subreddit Posts tracking csv is not found for %s", subredditCsvPath.toString())
+            );
+            return;
+        } else {
+
+        }
+
+        List<Map<String, DynamicCsvRowType>> records = new ArrayList<Map<String, DynamicCsvRowType>>();
+
+        try {
+            try (BufferedReader br = new BufferedReader(new FileReader(subredditCsvPath.toString()))) {
+
+                String line;
+                int rowNumber = 0;
+                while ((line = br.readLine()) != null) {
+                    String[] values = line.split(",");
+
+                    Map<String, DynamicCsvRowType> rowMap = new HashMap<String, DynamicCsvRowType>();
+                    rowMap.put("csv_row", new CsvIntegerType(rowNumber));
+                    rowMap.put("id", new CsvStringType(values[0]));
+                    rowMap.put("post_url", new CsvStringType(values[1]));
+                    rowMap.put("downloaded", new CsvStringType(values[2]));
+                    rowMap.put("local_screenshot",  new CsvStringType(values[3]));
+                    rowMap.put("local_json", new CsvStringType(values[4]));
+                    rowMap.put("ingested", new CsvStringType(values[5]));
+                    rowMap.put("csv_inserted_date", new CsvStringType(values[5]));
+
+                    records.add(rowMap);
+                    rowNumber++;
+                }
+            } 
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        for (Map<String, DynamicCsvRowType> row: records) {
+            
+            System.out.println(row.get("post_url").stringRepresentation());
+        }
     }
 
     public void LocalDirectoryUpploader(Path rootDir) {
 
     }
    
-
 }

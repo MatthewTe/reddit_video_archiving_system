@@ -8,8 +8,8 @@ public class Main {
     public static void main(String[] args) {
 
         Path localCsvPath = Paths.get("./");
-        SubredditIngestor.CsvListBuilder(localCsvPath, "https://www.reddit.com/r/CombatFootage/new/");
-
+        //SubredditIngestor.CsvListBuilder(localCsvPath, "https://www.reddit.com/r/CombatFootage/new/");
+        SubredditIngestor.LocalDirectoryBuilder(localCsvPath);
 
     }
 
