@@ -23,6 +23,10 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
+import com.reddit.label.CsvRowTypes.CsvIntegerType;
+import com.reddit.label.CsvRowTypes.CsvStringType;
+import com.reddit.label.CsvRowTypes.DynamicCsvRowType;
+
 
 public class SubredditIngestor {
     

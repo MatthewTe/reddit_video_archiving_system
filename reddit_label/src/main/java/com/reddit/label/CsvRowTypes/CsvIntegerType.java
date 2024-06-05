@@ -1,4 +1,4 @@
-package com.reddit.label;
+package com.reddit.label.CsvRowTypes;
 
 public class CsvIntegerType implements DynamicCsvRowType {
     private Integer value;
