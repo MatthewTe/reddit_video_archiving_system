@@ -40,7 +40,8 @@ public class Main {
             continuePastUnique
         ));
 
-        SubredditPostIngestor.RunSubredditIngestor(subreddit, continuePastUnique);
+        // SubredditPostIngestor.RunSubredditIngestor(subreddit, continuePastUnique);
+        SubredditPostIngestor.RunSubredditIngestorOld(subreddit, continuePastUnique);
     }
 
  }
