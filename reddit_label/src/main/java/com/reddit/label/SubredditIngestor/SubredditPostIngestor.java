@@ -261,9 +261,16 @@ public class SubredditPostIngestor {
 
             }
 
-            WebElement nextButton = driver.findElement(By.className("next-button"));
-            String nextUrl = nextButton.findElement(By.tagName("a")).getAttribute("href");
-            
+            WebElement nextButton;
+            String nextUrl;
+            try {
+                nextButton = driver.findElement(By.className("next-button"));
+                nextUrl = nextButton.findElement(By.tagName("a")).getAttribute("href");
+            } catch (Exception e) {
+                System.out.println("No next button found. Exiting...");
+                return;
+            }
+           
             if (nextUrl == null) {
                 System.out.println("No next url found - shutting down");
                 return;
@@ -278,6 +285,7 @@ public class SubredditPostIngestor {
                 e.printStackTrace();
             }
 
+            System.out.println(String.format("Going to new page %s", nextUrl));
             driver.get(nextUrl);
         }
 
@@ -390,8 +398,15 @@ public class SubredditPostIngestor {
 
             }
 
-            WebElement nextButton = driver.findElement(By.className("next-button"));
-            String nextUrl = nextButton.findElement(By.tagName("a")).getAttribute("href");
+            WebElement nextButton;
+            String nextUrl;
+            try {
+                nextButton = driver.findElement(By.className("next-button"));
+                nextUrl = nextButton.findElement(By.tagName("a")).getAttribute("href");
+            } catch (Exception e) {
+                System.out.println("No next button found. Exiting...");
+                return;
+            }
             
             if (nextUrl == null) {
                 System.out.println("No next url found - shutting down");
@@ -407,6 +422,7 @@ public class SubredditPostIngestor {
                 e.printStackTrace();
             }
 
+            System.out.println(String.format("Going to new page %s", nextUrl));
             driver.get(nextUrl);
         }
 
