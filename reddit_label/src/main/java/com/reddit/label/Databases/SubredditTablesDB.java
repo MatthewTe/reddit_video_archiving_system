@@ -14,6 +14,7 @@ public class SubredditTablesDB {
                     subreddit VARCHAR(255),
                     url TEXT NOT NULL,
                     static_downloaded BOOLEAN NOT NULL,
+                    static_root_url TEXT DEFAULT NULL,
                     screenshot TEXT,
                     json_post TEXT,
                     inserted_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -83,6 +84,69 @@ public class SubredditTablesDB {
         }
 
         return postIds;
+    }
+
+    public static int updateSubredditPostScreenshot(String id, String screenshotPath) {
+        var updatePostQuery = "UPDATE subreddit_posts SET screenshot = ? WHERE id = ?;";
+
+        try (var conn = DB.connect();
+            var pstmt = conn.prepareStatement(updatePostQuery)) {
+            
+            pstmt.setString(0, screenshotPath);
+            pstmt.setString(1, id);
+
+            int result = pstmt.executeUpdate();
+                
+            return result;
+
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+            return -1;
+    }
+
+    public static int updateSubredditJSON(String id, String jsonPath) {
+        var updatePostQuery = "UPDATE subreddit_posts SET json_post = ? WHERE id = ?";
+
+        try (var conn = DB.connect()) {
+
+            var pstmt = conn.prepareStatement(updatePostQuery);
+            pstmt.setString(0, jsonPath);
+            pstmt.setString(1, id);
+
+            int result = pstmt.executeUpdate();
+
+            return result;
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        return -1;
+    }
+
+    public static int updateSubredditPostStaicPath(String id, String staticPath) {
+
+        var updateQuery = "UPDATE subreddit_posts SET static_root_url = ? WHERE id = ?";
+
+        try (var conn = DB.connect()) {
+
+            var pstmt = conn.prepareStatement(updateQuery);
+            pstmt.setString(0, staticPath);
+            pstmt.setString(1, id);
+
+            int result = pstmt.executeUpdate();
+
+            return result;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+
     }
 
 }
