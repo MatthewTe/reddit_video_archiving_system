@@ -17,6 +17,7 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import com.reddit.label.Databases.SubredditPost;
+import com.reddit.label.Databases.SubredditTablesDB;
 
 public class SubredditStaticContentIngestor {
     
@@ -37,6 +38,13 @@ public class SubredditStaticContentIngestor {
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
 
             System.out.println(response.body());
+
+            // Placeholder for modifying the json value in the db:
+            String placeholderJsonpath = "AHHHHHHHHHH";
+            int updatedRows = SubredditTablesDB.updateSubredditJSON(post.getId(), placeholderJsonpath);
+
+            System.out.println(updatedRows);
+
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

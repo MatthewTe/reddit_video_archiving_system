@@ -1,5 +1,7 @@
 package com.reddit.label.Databases;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -65,6 +67,47 @@ public class SubredditTablesDB {
 
     }   
 
+    public static SubredditPost getPost(String id) {
+        String idQuery = """
+            SELECT 
+                id, 
+                subreddit, 
+                url, 
+                static_downloaded, 
+                screenshot, 
+                json_post, 
+                inserted_date, 
+                static_root_url  
+            FROM subreddit_posts WHERE id = ?""";
+
+        try (var conn = DB.connect()) {
+            PreparedStatement pstmt = conn.prepareStatement(idQuery);
+            pstmt.setString(1, id);
+
+            ResultSet result = pstmt.executeQuery();
+
+            while (result.next()) {
+                SubredditPost post = new SubredditPost(
+                    result.getString("id"), 
+                    result.getString("subreddit"), 
+                    result.getString("url"), 
+                    result.getBoolean("static_downloaded"), 
+                    result.getString("screenshot"), 
+                    result.getString("json_post"), 
+                    result.getTimestamp("inserted_date"),
+                    result.getString("static_root_url")
+                );
+
+                return post;
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
     public static List<String> findAllIds() {
         var postIds = new ArrayList<String>();
 
@@ -92,8 +135,8 @@ public class SubredditTablesDB {
         try (var conn = DB.connect();
             var pstmt = conn.prepareStatement(updatePostQuery)) {
             
-            pstmt.setString(0, screenshotPath);
-            pstmt.setString(1, id);
+            pstmt.setString(1, screenshotPath);
+            pstmt.setString(2, id);
 
             int result = pstmt.executeUpdate();
                 
@@ -112,8 +155,8 @@ public class SubredditTablesDB {
         try (var conn = DB.connect()) {
 
             var pstmt = conn.prepareStatement(updatePostQuery);
-            pstmt.setString(0, jsonPath);
-            pstmt.setString(1, id);
+            pstmt.setString(1, jsonPath);
+            pstmt.setString(2, id);
 
             int result = pstmt.executeUpdate();
 
@@ -134,8 +177,8 @@ public class SubredditTablesDB {
         try (var conn = DB.connect()) {
 
             var pstmt = conn.prepareStatement(updateQuery);
-            pstmt.setString(0, staticPath);
-            pstmt.setString(1, id);
+            pstmt.setString(1, staticPath);
+            pstmt.setString(2, id);
 
             int result = pstmt.executeUpdate();
 

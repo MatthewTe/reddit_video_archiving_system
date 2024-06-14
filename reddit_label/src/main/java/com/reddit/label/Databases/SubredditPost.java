@@ -1,5 +1,7 @@
 package com.reddit.label.Databases;
 
+import java.sql.Timestamp;
+
 public class SubredditPost {
 
     // Core fields:
@@ -9,19 +11,29 @@ public class SubredditPost {
     private boolean staticDownloaded;
 
     // Additional Fields:
+    private Timestamp insertedDate;
     private String screenshotPath;
     private String jsonPostPath;
     private String staticRootPath;
 
     public SubredditPost(String id, String subreddit, String url, boolean staticDownloaded, String screenshotPath,
-            String jsonPostPath, String staticRootPath) {
+            String jsonPostPath, Timestamp insertedDate, String staticRootPath) {
         this.id = id;
         this.subreddit = subreddit;
         this.url = url;
         this.staticDownloaded = staticDownloaded;
         this.screenshotPath = screenshotPath;
         this.jsonPostPath = jsonPostPath;
+        this.insertedDate = insertedDate;
         this.staticRootPath = staticRootPath;
+    }
+
+    public Timestamp getInsertedDate() {
+        return insertedDate;
+    }
+
+    public void setInsertedDate(Timestamp insertedDate) {
+        this.insertedDate = insertedDate;
     }
 
     public SubredditPost(String id, String subreddit, String url, boolean staticDownloaded) {

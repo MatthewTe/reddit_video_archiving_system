@@ -11,14 +11,20 @@ public class Main {
 
     public static void main(String[] args) {
 
-        SubredditPost testPost = new SubredditPost(
+        /* 
+         * SubredditPost testPost = new SubredditPost(
             "01ff040284bc008b1b1df9af916aa432", 
             "CombatFootage", 
             "https://www.reddit.com/r/CombatFootage/comments/1d2nzo7/evacuation_of_a_wounded_soldier_in_an_suv_under/",
             false
         );
 
-        SubredditStaticContentIngestor.IngestSnapshotImage(testPost);
+        SubredditStaticContentIngestor.IngestJSONContent(testPost);
+
+        System.out.println(testPost.getId() + "-> " + testPost.getJsonPostPath());
+        SubredditPost updatedPost =  SubredditTablesDB.getPost(testPost.getId());
+        System.out.println(updatedPost.getId() + "-> " + updatedPost.getJsonPostPath());
+        */
 
         // Command line args:
         Options options = new Options();
