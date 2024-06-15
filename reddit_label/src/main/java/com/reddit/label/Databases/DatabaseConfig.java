@@ -33,4 +33,15 @@ public class DatabaseConfig {
         return properties.getProperty("db.password");
     }
 
+    public static String getTestDbUrl() {
+        return properties.getProperty("db.test.url");
+    }
+
+    public static String getTestDbUsername() {
+        return properties.getProperty("db.test.username");
+    }
+    
+    public static String getTestDbPassword() {
+        return properties.getProperty("db.test.password");
+    }
 }

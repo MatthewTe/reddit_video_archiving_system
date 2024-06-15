@@ -1,11 +1,16 @@
 package com.reddit.label.SubredditIngestor;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
 import java.time.Duration;
 
 import org.openqa.selenium.By;
@@ -19,13 +24,21 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
 
+import io.minio.BucketExistsArgs;
+import io.minio.MakeBucketArgs;
+import io.minio.MinioClient;
+import io.minio.ObjectWriteResponse;
+import io.minio.PutObjectArgs;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
+
 public class SubredditStaticContentIngestor {
     
-    public static void IngestJSONContent(SubredditPost post) {
-
-        // Take the post, grab the url and make an http request with the JSON url.
-        // Get JSON and then ingest it into a blob storage account. 
-        // Once it has been ingested update the record into the database.
+    public static String IngestJSONContent(Connection conn, MinioClient minioClient, SubredditPost post) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException {
 
         var client = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder(
@@ -37,20 +50,51 @@ public class SubredditStaticContentIngestor {
         try {
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
 
-            System.out.println(response.body());
+            boolean redditBucket = minioClient.bucketExists(BucketExistsArgs.builder().bucket("reddit-posts").build());
+            if (!redditBucket) {
+                MakeBucketArgs mbArgs = MakeBucketArgs.builder()
+                    .bucket("reddit-posts")
+                    .build();
 
-            // Placeholder for modifying the json value in the db:
-            String placeholderJsonpath = "AHHHHHHHHHH";
-            int updatedRows = SubredditTablesDB.updateSubredditJSON(post.getId(), placeholderJsonpath);
+                minioClient.makeBucket(mbArgs);
+            } else {
+                System.out.println("Bucket Reddit_Post exists");
+            }
 
-            System.out.println(updatedRows);
+            String jsonFileName = String.format("%s/post.json", post.getId());
+            byte[] jsonByteContent = response.body().getBytes(StandardCharsets.UTF_8);
 
+            System.out.printf("Attempting to upload %s json file to blob", jsonFileName);
+            
+            try {
+                ObjectWriteResponse jsonUploadResponse = minioClient.putObject(
+                    PutObjectArgs.builder().bucket("reddit-posts").object(jsonFileName)
+                        .stream(new ByteArrayInputStream(jsonByteContent), jsonByteContent.length, -1)
+                        .contentType("application/json")
+                        .build()
+                );
+
+                if (jsonUploadResponse.toString() == null) {
+                    System.out.printf("Error in uploading %s json byte stream to blob", jsonFileName);
+                    return null;
+                } else {
+                    System.out.printf("Successfully uploaded json file to blob: %s. Inserting record into db", jsonFileName);
+                    int updatedRows = SubredditTablesDB.updateSubredditJSON(conn, post.getId(), jsonFileName);
+                    if (updatedRows != 1) {
+                        System.out.println(String.format("Error in inserting the subreddit JSON. Updated rows: %d", updatedRows));
+                        return jsonFileName;
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
 
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
-
+        
+        return null;
 
     }
 

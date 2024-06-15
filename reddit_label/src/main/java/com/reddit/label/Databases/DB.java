@@ -22,6 +22,23 @@ public class DB {
             return null;
         }
 
+    }
+
+    public static Connection connectTestDB() throws SQLException {
+        
+        try {
+            var jdbcUrl = DatabaseConfig.getTestDbUrl();
+            var username = DatabaseConfig.getTestDbUsername();
+            var password = DatabaseConfig.getTestDbPassword();
+
+            System.out.println("Created connection to the test postgres database");
+
+            return DriverManager.getConnection(jdbcUrl, username, password);
+
+        }  catch (SQLException e) {
+            System.err.println(e.getMessage());
+            return null;
+        }
 
     }
 }

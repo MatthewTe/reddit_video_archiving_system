@@ -1,15 +1,19 @@
 package com.reddit.label;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+
 import org.apache.commons.cli.*;
 
-import com.reddit.label.Databases.SubredditPost;
+import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.SubredditIngestor.SubredditPostIngestor;
-import com.reddit.label.SubredditIngestor.SubredditStaticContentIngestor;
+
 
 public class Main {
 
     public static void main(String[] args) {
+
 
         /* 
          * SubredditPost testPost = new SubredditPost(
@@ -53,7 +57,13 @@ public class Main {
         tryCreateTable = true;
         if (tryCreateTable) {
             System.out.println("Trying to create subreddit post database tables...");
-            SubredditTablesDB.createSubredditTables();
+
+            try (Connection conn = DB.connect()) {
+                SubredditTablesDB.createSubredditTables(conn);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return;
+            }
         }
 
         System.out.println(String.format(
@@ -64,9 +74,23 @@ public class Main {
         
         if (urlOverride != null) {
             String.format("Manual Override provided $s. Activating Ingestor.", urlOverride);
-            SubredditPostIngestor.RunSubredditIngestorOld(subreddit, continuePastUnique, urlOverride);
+
+            try (Connection conn = DB.connect()) {
+                SubredditPostIngestor.RunSubredditIngestorOld(conn, subreddit, continuePastUnique, urlOverride);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return;
+            }
+
         } else {
-            SubredditPostIngestor.RunSubredditIngestorOld(subreddit, continuePastUnique);
+
+            try (Connection conn = DB.connect()) {
+                SubredditPostIngestor.RunSubredditIngestorOld(conn, subreddit, continuePastUnique);
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return;
+            }
+
         }
     }
 

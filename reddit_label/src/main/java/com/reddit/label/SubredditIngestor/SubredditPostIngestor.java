@@ -2,6 +2,7 @@ package com.reddit.label.SubredditIngestor;
 
 import java.math.BigInteger;
 import java.security.MessageDigest;
+import java.sql.Connection;
 import java.time.Duration;
 
 import java.util.ArrayList;
@@ -19,7 +20,7 @@ import com.reddit.label.Databases.SubredditTablesDB;
 
 public class SubredditPostIngestor {
 
-    public static void RunSubredditIngestor(String subreddit, Boolean stopOnExisting) {
+    public static void RunSubredditIngestor(Connection conn, String subreddit, Boolean stopOnExisting) {
 
         // Create a selenium browser. Log in, start scrolling.
         // Iterate through all of the reddit posts. Extract all of the relevant fields. 
@@ -61,7 +62,9 @@ public class SubredditPostIngestor {
         }
 
         while (true) {
-            List<String> previouslyIngestedPosts = SubredditTablesDB.findAllIds();
+
+            List<String> previouslyIngestedPosts = SubredditTablesDB.findAllIds(conn);
+
             System.out.println(
                 String.format("%d existing records found in the database", previouslyIngestedPosts.size())
             );
@@ -135,14 +138,12 @@ public class SubredditPostIngestor {
                     System.out.println("stopOnExisting set to false, continuing to scroll and extract posts even though no uniuqe posts found");
                 }
             } else {
-
-                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(postToIngest);
+                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(conn, postToIngest);
                 if (numRowsInserted == -1) {
                     System.err.println("Number of rows inserted into the database is -1. There was some error inserting records into the database");
                 } else {
                     System.out.println(String.format("%d subreddit posts inserted into the database", numRowsInserted));
                 }
-
             }
 
             // Scrolling down to grab new points:
@@ -160,7 +161,7 @@ public class SubredditPostIngestor {
 
     }
 
-    public static void RunSubredditIngestorOld(String subreddit, Boolean stopOnExisting) {
+    public static void RunSubredditIngestorOld(Connection conn, String subreddit, Boolean stopOnExisting) {
 
         WebDriver driver = new ChromeDriver();
 
@@ -181,8 +182,8 @@ public class SubredditPostIngestor {
             }
 
             List<WebElement> subredditPostElements = driver.findElements(By.className("thing"));
+            List<String> existingPostIds = SubredditTablesDB.findAllIds(conn);
 
-            List<String> existingPostIds = SubredditTablesDB.findAllIds();
             List<SubredditPost> newPostsToIngest = new ArrayList<SubredditPost>();
 
             for (WebElement post: subredditPostElements) {
@@ -252,7 +253,8 @@ public class SubredditPostIngestor {
             } else {
                 System.out.println(String.format("%d new posts to insert into the database", newPostsToIngest.size()));
                 
-                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(newPostsToIngest);
+                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(conn, newPostsToIngest);
+
                 if (numRowsInserted == -1) {
                     System.err.println("Number of rows inserted into the database is -1. There was some error inserting records into the database");
                 } else {
@@ -293,7 +295,7 @@ public class SubredditPostIngestor {
 
     }
 
-    public static void RunSubredditIngestorOld(String subreddit, Boolean stopOnExisting, String overrideUrl) {
+    public static void RunSubredditIngestorOld(Connection conn, String subreddit, Boolean stopOnExisting, String overrideUrl) {
 
         WebDriver driver = new ChromeDriver();
 
@@ -318,8 +320,8 @@ public class SubredditPostIngestor {
             }
 
             List<WebElement> subredditPostElements = driver.findElements(By.className("thing"));
-
-            List<String> existingPostIds = SubredditTablesDB.findAllIds();
+            
+            List<String> existingPostIds = SubredditTablesDB.findAllIds(conn);
             List<SubredditPost> newPostsToIngest = new ArrayList<SubredditPost>();
 
             for (WebElement post: subredditPostElements) {
@@ -389,7 +391,8 @@ public class SubredditPostIngestor {
             } else {
                 System.out.println(String.format("%d new posts to insert into the database", newPostsToIngest.size()));
                 
-                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(newPostsToIngest);
+                int numRowsInserted = SubredditTablesDB.InsertBasicSubredditPost(conn, newPostsToIngest);
+               
                 if (numRowsInserted == -1) {
                     System.err.println("Number of rows inserted into the database is -1. There was some error inserting records into the database");
                 } else {
@@ -427,9 +430,5 @@ public class SubredditPostIngestor {
         }
 
         driver.close();
-
- 
-
-
     }
 }
