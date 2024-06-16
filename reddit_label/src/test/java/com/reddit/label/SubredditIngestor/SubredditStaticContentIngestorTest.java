@@ -96,7 +96,45 @@ public class SubredditStaticContentIngestorTest {
     }
 
     @Test
-    void testIngestSnapshotImage() {
+    void testIngestSnapshotImage() throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+        SubredditPost exampleScreenshotSubredditPost = new SubredditPost(
+            "example_screenshot_id",
+            "ExampleSubreddit",
+            "https://www.reddit.com/r/pics/comments/1dgpdng/the_british_aircraft_carrier_hms_queen_elizabeth/",
+            false,
+            null,
+            null,
+            null,
+            null
+        );
+
+        List<SubredditPost> examplePosts = new ArrayList<SubredditPost>();
+        examplePosts.add(exampleScreenshotSubredditPost);
+
+        int rowsInserted = SubredditTablesDB.InsertFullSubredditPost(conn, examplePosts);
+        assertEquals(1, rowsInserted);
+
+        SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "example_screenshot_id");
+        assertEquals("example_screenshot_id", postFromDB.getId());
+        
+        MinioClient testClient = MinioClient.builder()
+            .endpoint(BlobStorageConfig.getMinioTestEndpoint(), 9000, false)
+            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
+            .build();
+
+        String staticFileScreenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, postFromDB);
+        System.out.println(staticFileScreenshotPath);
+        assertEquals("example_screenshot_id/screenshot.png", staticFileScreenshotPath);
+
+        SubredditPost postFromDatabase = SubredditTablesDB.getPost(conn, "example_screenshot_id");
+        assertEquals("example_screenshot_id/screenshot.png", postFromDatabase.getScreenshotPath());
+
+        RemoveObjectArgs rArgs = RemoveObjectArgs.builder()
+            .bucket("reddit-posts")
+            .object(staticFileScreenshotPath)
+            .build();
+
+        testClient.removeObject(rArgs);
 
     }
     

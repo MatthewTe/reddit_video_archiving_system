@@ -12,6 +12,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.time.Duration;
+import java.util.Base64;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.Keys;
@@ -102,7 +103,7 @@ public class SubredditStaticContentIngestor {
 
     }
 
-    public static void IngestSnapshotImage(SubredditPost post) {
+    public static String IngestSnapshotImage(Connection conn, MinioClient minioClient, SubredditPost post) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
 
         WebDriver driver = new ChromeDriver();
 
@@ -138,9 +139,35 @@ public class SubredditStaticContentIngestor {
         }
 
         String encodedScreenshotImg = ((TakesScreenshot)driver).getScreenshotAs(OutputType.BASE64);
-        System.out.println(encodedScreenshotImg);
+        byte[] screenshotBytes = Base64.getDecoder().decode(encodedScreenshotImg);
+        ByteArrayInputStream screenshotByteStream = new ByteArrayInputStream(screenshotBytes);
+        
+        String screenshotPngFilename = String.format("%s/screenshot.png", post.getId());
 
         driver.quit();
+        
+        ObjectWriteResponse screenshotWriterResponse = minioClient.putObject(
+            PutObjectArgs.builder().bucket("reddit-posts").object(screenshotPngFilename).stream(
+                screenshotByteStream, screenshotBytes.length, -1)
+                .contentType("image/png")
+                .build());
+        
+        if (screenshotWriterResponse.toString() == null) {
+            System.out.printf("\nError in uploading %s png byte stream to blob\n", screenshotPngFilename);
+            return null;
+        } else {
+           System.out.printf("\nSuccessfully uploaded png file to blob: %s. Inserting record into db\n", screenshotPngFilename);
+            int updatedRows = SubredditTablesDB.updateSubredditPostScreenshot(conn, post.getId(), screenshotPngFilename);
+            if (updatedRows != 1) {
+                System.out.println(String.format("Error in inserting the subreddit screenshot. Updated rows: %d", updatedRows));
+                return null;
+            } else {
+                System.out.println(String.format("Sucessfully updated the subreddit screenshot to database. Updated rows: %d", updatedRows));
+            }
+
+            return screenshotPngFilename;
+
+        }
 
 
     }
