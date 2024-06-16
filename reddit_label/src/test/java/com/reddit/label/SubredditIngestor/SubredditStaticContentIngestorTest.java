@@ -52,8 +52,7 @@ public class SubredditStaticContentIngestorTest {
         conn.close();
     }
 
-    /* 
-     *     @Test
+    @Test
     void testIngestJSONContent() throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IOException {
         SubredditPost exampleJsonSubredditPost = new SubredditPost(
             "example_json_id",
@@ -74,13 +73,14 @@ public class SubredditStaticContentIngestorTest {
 
         SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "example_json_id");
         assertEquals("example_json_id", postFromDB.getId());
-
+        
         MinioClient testClient = MinioClient.builder()
             .endpoint(BlobStorageConfig.getMinioTestEndpoint(), 9000, false)
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioAccesskey())
+            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
             .build();
 
         String staticFileJsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, postFromDB);
+        System.out.println(staticFileJsonPath);
         assertEquals("example_json_id/post.json", staticFileJsonPath);
 
         SubredditPost postFromDatabase = SubredditTablesDB.getPost(conn, "example_json_id");
@@ -94,8 +94,6 @@ public class SubredditStaticContentIngestorTest {
         testClient.removeObject(rArgs);
 
     }
-
-     */
 
     @Test
     void testIngestSnapshotImage() {

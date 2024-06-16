@@ -51,6 +51,7 @@ public class SubredditStaticContentIngestor {
             HttpResponse<String> response = client.send(request, BodyHandlers.ofString());
 
             boolean redditBucket = minioClient.bucketExists(BucketExistsArgs.builder().bucket("reddit-posts").build());
+
             if (!redditBucket) {
                 MakeBucketArgs mbArgs = MakeBucketArgs.builder()
                     .bucket("reddit-posts")
@@ -62,6 +63,7 @@ public class SubredditStaticContentIngestor {
             }
 
             String jsonFileName = String.format("%s/post.json", post.getId());
+
             byte[] jsonByteContent = response.body().getBytes(StandardCharsets.UTF_8);
 
             System.out.printf("Attempting to upload %s json file to blob", jsonFileName);
@@ -75,19 +77,21 @@ public class SubredditStaticContentIngestor {
                 );
 
                 if (jsonUploadResponse.toString() == null) {
-                    System.out.printf("Error in uploading %s json byte stream to blob", jsonFileName);
+                    System.out.printf("Error in uploading %s json byte stream to blob\n", jsonFileName);
                     return null;
                 } else {
-                    System.out.printf("Successfully uploaded json file to blob: %s. Inserting record into db", jsonFileName);
+                    System.out.printf("\nSuccessfully uploaded json file to blob: %s. Inserting record into db\n", jsonFileName);
                     int updatedRows = SubredditTablesDB.updateSubredditJSON(conn, post.getId(), jsonFileName);
                     if (updatedRows != 1) {
                         System.out.println(String.format("Error in inserting the subreddit JSON. Updated rows: %d", updatedRows));
+                        return null;
+                    } else {
                         return jsonFileName;
                     }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
-                return null;
+                return e.getMessage();
             }
 
         } catch (IOException | InterruptedException e) {
