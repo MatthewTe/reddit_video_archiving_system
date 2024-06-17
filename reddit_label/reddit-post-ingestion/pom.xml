@@ -2,14 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
       
   <modelVersion>4.0.0</modelVersion>
-      
+  <parent>
+    <groupId>com.reddit.label</groupId>
+    <artifactId>reddit_label</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
+
   <groupId>com.reddit.label</groupId>
       
-  <artifactId>reddit_label</artifactId>
+  <artifactId>reddit-post-ingestion</artifactId>
       
   <version>1.0-SNAPSHOT</version>
-      
-  <packaging>pom</packaging>
+  <name>reddit-post-ingestion</name>
       
   <properties>
             
@@ -160,10 +164,4 @@
         
   </dependencies>
   
-  <modules>
-      
-    <module>static-file-ingestors</module>
-    <module>reddit-post-ingestion</module>
-      
-  </modules>
 </project>
