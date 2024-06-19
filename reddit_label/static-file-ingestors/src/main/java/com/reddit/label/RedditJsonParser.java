@@ -44,12 +44,19 @@ public class RedditJsonParser {
             if (!mainAttributesNode.has("post_hint")) {
                 System.out.println("post_hint not found in the subreddit. Setting the attribute to null");
                 defaultAttributes.setPostHint(null);
+                defaultAttributes.setStaticFileType(RedditContentPostType.NO_STATIC);
             } else {
-                defaultAttributes.setPostHint(mainAttributesNode.get("post_hint").asText());
+
+                String postHint = mainAttributesNode.get("post_hint").asText();
+                defaultAttributes.setPostHint(postHint);
+
+                if (postHint.contains("hosted:video")) {
+                    defaultAttributes.setStaticFileType(RedditContentPostType.HOSTED_VIDEO);
+                }
+
+
+
             }
-
-
-            // TODO: Extract the type of static file associated w/ the post and set is as the enum type
 
             return new RedditJsonParserResponse(defaultAttributes, rootNode);
         } 

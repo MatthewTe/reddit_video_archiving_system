@@ -1,8 +1,9 @@
 package com.reddit.label;
 
 public enum RedditContentPostType {
-    VIDEO,
+    HOSTED_VIDEO,
     IMAGE,
     GIF,
-    PHOTO_ALBUM
+    PHOTO_ALBUM,
+    NO_STATIC
 }
