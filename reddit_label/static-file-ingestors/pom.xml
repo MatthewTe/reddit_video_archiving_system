@@ -43,5 +43,11 @@
       <version>2.2.2</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.reddit.label</groupId>
+      <artifactId>reddit-post-ingestion</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+
   </dependencies>
 </project>

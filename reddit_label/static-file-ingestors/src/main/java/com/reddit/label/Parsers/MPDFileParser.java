@@ -19,7 +19,7 @@ public class MPDFileParser {
         xmlDocument.getDocumentElement().normalize();
     }
 
-   public List<DashPeriod> getHighestResoloutionPeriods() {
+   public List<DashPeriod> getRedditVideoMPDHighestResoloutionPeriods() {
 
         System.out.println("Starting MPD XML parsing...");
 

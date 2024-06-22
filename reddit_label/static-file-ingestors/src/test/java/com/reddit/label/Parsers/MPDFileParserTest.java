@@ -43,7 +43,7 @@ public class MPDFileParserTest {
         org.w3c.dom.Document doc = builder.parse(inputSource);
 
         MPDFileParser parser = new MPDFileParser(doc);
-        List<DashPeriod> extractedPeriods =  parser.getHighestResoloutionPeriods();
+        List<DashPeriod> extractedPeriods =  parser.getRedditVideoMPDHighestResoloutionPeriods();
         System.out.println(extractedPeriods);
 
         DashPeriod singleExtractedPeriod = extractedPeriods.get(0);

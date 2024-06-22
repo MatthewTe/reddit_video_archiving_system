@@ -11,15 +11,17 @@ import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
+import java.util.List;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.*;
 import org.xml.sax.InputSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.reddit.label.RedditPostJsonDefaultAttributes;
+import com.reddit.label.Parsers.MPDFileParser;
+import com.reddit.label.Parsers.MPDUtils.DashPeriod;
 
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
@@ -30,9 +32,11 @@ import io.minio.errors.InvalidResponseException;
 import io.minio.errors.ServerException;
 import io.minio.errors.XmlParserException;
 
+import com.reddit.label.Databases.SubredditPost;
+
 public class RedditHostedVideoIngestor implements StaticFileIngestor {
 
-    public String fileToBlob(RedditPostJsonDefaultAttributes defaultPostAttributes, JsonNode redditPostNode, Connection conn, MinioClient minioClient) throws MalformedURLException, IOException {
+    public String fileToBlob(SubredditPost redditPost, RedditPostJsonDefaultAttributes defaultPostAttributes, JsonNode redditPostNode, Connection conn, MinioClient minioClient) throws MalformedURLException, IOException {
 
         ArrayNode rootArrayNode = (ArrayNode)redditPostNode;
 
@@ -75,7 +79,7 @@ public class RedditHostedVideoIngestor implements StaticFileIngestor {
             httpConn.disconnect();
             
             // MPD file goes to blob:
-            String mpdFileName = String.format("%s/hosted_video.mpd", "test_output");
+            String mpdFileName = String.format("%s/hosted_video.mpd", redditPost.getId());
             try {
                 minioClient.putObject(
                     PutObjectArgs.builder().bucket("reddit-posts").object(mpdFileName)
@@ -100,31 +104,76 @@ public class RedditHostedVideoIngestor implements StaticFileIngestor {
                 DocumentBuilder builder = factory.newDocumentBuilder();
                 org.w3c.dom.Document doc = builder.parse(inputSource);
 
-                doc.getDocumentElement().normalize();
-                NodeList representations = doc.getElementsByTagNameNS("urn:mpeg:dash:schema:mpd:2011", "Representation");
+                MPDFileParser parser = new MPDFileParser(doc);
+                List<DashPeriod> extractedPeriods =  parser.getRedditVideoMPDHighestResoloutionPeriods();
 
-                if (representations.getLength() > 0) {
-                    // Get the first Representation element
-                    Node representation = representations.item(0);
+                for (DashPeriod period: extractedPeriods) {
 
-                    if (representation.getNodeType() == Node.ELEMENT_NODE) {
-                        Element repElement = (Element) representation;
+                    if (period.getVideoUrl() != null) {
+                        URI videoFileURL = new URI(defaultPostAttributes.getUrl() + period.getVideoUrl());
+                        
+                        HttpURLConnection videoHttpConn = (HttpURLConnection) videoFileURL.toURL().openConnection();
+                        videoHttpConn.setRequestMethod("GET");
 
-                        // Get the BaseURL element within the first Representation
-                        NodeList baseURLs = repElement.getElementsByTagNameNS("urn:mpeg:dash:schema:mpd:2011", "BaseURL");
+                        int videoResponseCode = videoHttpConn.getResponseCode();
+                        if (videoResponseCode == HttpURLConnection.HTTP_OK) {
+                            InputStream videoInputStream = videoHttpConn.getInputStream();
 
-                        if (baseURLs.getLength() > 0) {
-                            // Extract the text content of the BaseURL element
-                            String baseURL = baseURLs.item(0).getTextContent();
-                            System.out.println("BaseURL of the first Representation: " + baseURL);
+                            String videoFileName = String.format("%s/%s", redditPost.getId(), period.getVideoUrl());
+                            try {
 
-                            // Constructing URL to the actual video:
-                            //URI mp4Uri = new URI(defaultPostAttributes.getUrl() + "/" + baseURL);
+                                minioClient.putObject(
+                                    PutObjectArgs.builder().bucket("reddit-posts").object(videoFileName)
+                                    .stream(videoInputStream, -1, -1)
+                                    .contentType("video/mp4")
+                                    .build()
+                                );
 
+                            } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                                    | InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+                                    | IllegalArgumentException | IOException e) {
+                                System.out.println("Error in uploading video file to blob");
+                                e.printStackTrace();
+                            } finally {
+                                videoInputStream.close();
+                            }
+                    }
+
+                    if (period.getAudioUrl() != null) {
+                        URI audioFileURL = new URI(defaultPostAttributes.getUrl() + period.getAudioUrl());
+
+                        HttpURLConnection audioHttpConn = (HttpURLConnection) audioFileURL.toURL().openConnection();
+                        audioHttpConn.setRequestMethod("GET");
+
+                        int audioResponseCode = audioHttpConn.getResponseCode();
+                        if (audioResponseCode == HttpURLConnection.HTTP_OK) {
+                            InputStream audioInputStream = audioHttpConn.getInputStream();
+
+                            String audioFileName = String.format("%s/%s", redditPost.getId(), period.getAudioUrl());
+
+                            try {
+
+                                minioClient.putObject(
+                                    PutObjectArgs.builder().bucket("reddit-posts").object(audioFileName)
+                                    .stream(audioInputStream, -1, -1)
+                                    .contentType("audio/mp4")
+                                    .build()
+                                );
+
+                            } catch (InvalidKeyException | ErrorResponseException | InsufficientDataException | InternalException
+                                    | InvalidResponseException | NoSuchAlgorithmException | ServerException | XmlParserException
+                                    | IllegalArgumentException | IOException e) {
+                                System.out.println("Error in uploading audio file to blob");
+                                e.printStackTrace();
+                            } finally {
+                                audioInputStream.close();
+                            }
                         }
 
                     }
+
                 }
+            }
 
             } catch (Exception e) {
                 e.printStackTrace();
