@@ -13,5 +13,4 @@ import io.minio.MinioClient;
 
 public interface StaticFileIngestor {
     public String fileToBlob(SubredditPost redditPost, RedditPostJsonDefaultAttributes postDefaultAttributes, JsonNode postNode, Connection con, MinioClient minioClient) throws MalformedURLException, IOException;
-    public URI getFileUrl(JsonNode postNode);
 }

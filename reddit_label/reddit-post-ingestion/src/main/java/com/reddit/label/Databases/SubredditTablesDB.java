@@ -235,4 +235,24 @@ public class SubredditTablesDB {
 
     }
 
+    public static int updateStaticDownloadedFlag(Connection conn, String id, Boolean staticDownloadedFlag) {
+
+        var updateStaticDownloadedFlagQueiry = "UPDATE subreddit_posts SET static_downloaded = ? WHERE id = ?";
+
+        try (var pstmt = conn.prepareStatement(updateStaticDownloadedFlagQueiry)) {
+            pstmt.setBoolean(1, staticDownloadedFlag);
+            pstmt.setString(2, id);
+
+            int result = pstmt.executeUpdate();
+
+            return result;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+
+    }
+
 }
