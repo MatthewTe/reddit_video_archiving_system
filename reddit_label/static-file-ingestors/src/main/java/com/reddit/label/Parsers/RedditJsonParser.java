@@ -1,4 +1,4 @@
-package com.reddit.label;
+package com.reddit.label.Parsers;
 
 import java.io.IOException;
 
@@ -7,6 +7,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.reddit.label.RedditContentPostType;
+import com.reddit.label.RedditJsonParserResponse;
+import com.reddit.label.RedditPostJsonDefaultAttributes;
 
 public class RedditJsonParser {
     

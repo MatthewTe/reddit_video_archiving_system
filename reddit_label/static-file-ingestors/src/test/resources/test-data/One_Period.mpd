@@ -1,0 +1,52 @@
+<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" mediaPresentationDuration="PT16.433332443S" minBufferTime="PT4S" profiles="urn:mpeg:dash:profile:isoff-on-demand:2011" type="static">
+  <Period duration="PT16.433332443S" id="0">
+    <AdaptationSet contentType="video" id="0" maxHeight="720" maxWidth="980" sar="1:1" segmentAlignment="true" startWithSAP="1">
+      <Representation bandwidth="327793" codecs="avc1.4d401e" frameRate="15360/512" height="220" id="1" mimeType="video/mp4" width="300">
+        <BaseURL>DASH_220.mp4</BaseURL>
+        <SegmentBase indexRange="858-937" timescale="15360">
+          <Initialization range="0-857" />
+        </SegmentBase>
+      </Representation>
+      <Representation bandwidth="584638" codecs="avc1.4d401e" frameRate="15360/512" height="270" id="2" mimeType="video/mp4" width="368">
+        <BaseURL>DASH_270.mp4</BaseURL>
+        <SegmentBase indexRange="858-937" timescale="15360">
+          <Initialization range="0-857" />
+        </SegmentBase>
+      </Representation>
+      <Representation bandwidth="1027190" codecs="avc1.4d401e" frameRate="15360/512" height="360" id="3" mimeType="video/mp4" width="490">
+        <BaseURL>DASH_360.mp4</BaseURL>
+        <SegmentBase indexRange="858-937" timescale="15360">
+          <Initialization range="0-857" />
+        </SegmentBase>
+      </Representation>
+      <Representation bandwidth="1512866" codecs="avc1.4d401f" frameRate="15360/512" height="480" id="4" mimeType="video/mp4" width="654">
+        <BaseURL>DASH_480.mp4</BaseURL>
+        <SegmentBase indexRange="858-937" timescale="15360">
+          <Initialization range="0-857" />
+        </SegmentBase>
+      </Representation>
+      <Representation bandwidth="2331480" codecs="avc1.4d401f" frameRate="15360/512" height="720" id="5" mimeType="video/mp4" width="980">
+        <BaseURL>DASH_720.mp4</BaseURL>
+        <SegmentBase indexRange="858-937" timescale="15360">
+          <Initialization range="0-857" />
+        </SegmentBase>
+      </Representation>
+    </AdaptationSet>
+    <AdaptationSet contentType="audio" id="1" segmentAlignment="true" startWithSAP="1">
+      <Representation audioSamplingRate="48000" bandwidth="66262" codecs="mp4a.40.2" id="6" mimeType="audio/mp4">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2" />
+        <BaseURL>DASH_AUDIO_64.mp4</BaseURL>
+        <SegmentBase indexRange="820-911" timescale="48000">
+          <Initialization range="0-819" />
+        </SegmentBase>
+      </Representation>
+      <Representation audioSamplingRate="48000" bandwidth="133654" codecs="mp4a.40.2" id="7" mimeType="audio/mp4">
+        <AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2" />
+        <BaseURL>DASH_AUDIO_128.mp4</BaseURL>
+        <SegmentBase indexRange="820-911" timescale="48000">
+          <Initialization range="0-819" />
+        </SegmentBase>
+      </Representation>
+    </AdaptationSet>
+    </Period>
+</MPD>
