@@ -141,4 +141,34 @@ public class SubredditTablesDBTest {
         assertEquals(subredditFromDatabaseUpdatedStaticFile.getStaticRootPath(), "a_new_static_path");
 
     }
+
+    @Test
+    void testUpdateStaticDownloadedFlagTrue() {
+
+        List<SubredditPost> staticFlagUpdatePosts = new ArrayList<>();
+        // String id, String subreddit, String url, boolean staticDownloaded, String screenshotPath
+        staticFlagUpdatePosts.add(new SubredditPost(
+            "id_testing_for_static_flag",
+            "TestSubreddit",
+            "test_url",
+            false
+        ));
+
+        int insertedSubreddit = SubredditTablesDB.InsertBasicSubredditPost(conn, staticFlagUpdatePosts);
+        assertEquals(insertedSubreddit, 1);
+
+        SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "id_testing_for_static_flag");
+        assertEquals(postFromDB.getId(), "id_testing_for_static_flag");
+        assertEquals(postFromDB.getSubreddit(), "TestSubreddit");
+        assertEquals(postFromDB.getUrl(), "test_url");
+        assertEquals(postFromDB.isStaticDownloaded(), false);
+
+        int updatedStaticDownloadedFlagResult = SubredditTablesDB.updateStaticDownloadedFlagTrue(conn, postFromDB.getId());
+        assertEquals(updatedStaticDownloadedFlagResult, 1);
+
+        SubredditPost updatedPost = SubredditTablesDB.getPost(conn, "id_testing_for_static_flag");
+        assertEquals(updatedPost.getId(), "id_testing_for_static_flag");
+        assertEquals(updatedPost.isStaticDownloaded(),true); 
+
+    }
 }

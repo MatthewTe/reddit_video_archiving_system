@@ -235,12 +235,12 @@ public class SubredditTablesDB {
 
     }
 
-    public static int updateStaticDownloadedFlag(Connection conn, String id, Boolean staticDownloadedFlag) {
+    public static int updateStaticDownloadedFlagTrue(Connection conn, String id) {
 
         var updateStaticDownloadedFlagQueiry = "UPDATE subreddit_posts SET static_downloaded = ? WHERE id = ?";
 
         try (var pstmt = conn.prepareStatement(updateStaticDownloadedFlagQueiry)) {
-            pstmt.setBoolean(1, staticDownloadedFlag);
+            pstmt.setBoolean(1, true);
             pstmt.setString(2, id);
 
             int result = pstmt.executeUpdate();
