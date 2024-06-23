@@ -55,6 +55,8 @@ public class RedditJsonParser {
 
                 if (postHint.contains("hosted:video")) {
                     defaultAttributes.setStaticFileType(RedditContentPostType.HOSTED_VIDEO);
+                } else if (postHint.contains("image")) {
+                    defaultAttributes.setStaticFileType(RedditContentPostType.IMAGE);
                 }
 
 

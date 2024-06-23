@@ -23,6 +23,7 @@ import org.xml.sax.InputSource;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.reddit.label.RedditContentPostType;
 import com.reddit.label.RedditPostJsonDefaultAttributes;
 import com.reddit.label.Parsers.MPDFileParser;
 import com.reddit.label.Parsers.MPDUtils.DashPeriod;
@@ -43,6 +44,11 @@ import com.reddit.label.Databases.SubredditTablesDB;
 public class RedditHostedVideoIngestor implements StaticFileIngestor {
 
     public String fileToBlob(SubredditPost redditPost, RedditPostJsonDefaultAttributes defaultPostAttributes, JsonNode redditPostNode, Connection conn, MinioClient minioClient) throws MalformedURLException, IOException {
+
+        if (defaultPostAttributes.getStaticFileType() != RedditContentPostType.HOSTED_VIDEO) {
+            System.out.printf("Warining! Reddit Post Hosted Video Ingestor has been called on a post with a different static file type: %s. Exiting without ingesting static content", RedditContentPostType.HOSTED_VIDEO);
+            return null;
+        }
 
         ArrayNode rootArrayNode = (ArrayNode)redditPostNode;
 
@@ -260,8 +266,8 @@ public class RedditHostedVideoIngestor implements StaticFileIngestor {
                 }
 
                 // Database update to indicate that static files have been ingested:
-                int flagUpdatedResult = SubredditTablesDB.updateStaticDownloadedFlag(conn, redditPost.getId(), true);
-
+                int flagUpdatedResult = SubredditTablesDB.updateStaticDownloadedFlagTrue(conn, redditPost.getId());
+                
                 if (flagUpdatedResult == -1) {
                     System.out.printf("Error in updating the boolean flag in the database for post: %s \n", redditPost.getId());
                 } else {

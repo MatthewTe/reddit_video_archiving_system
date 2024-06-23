@@ -2,7 +2,6 @@ package com.reddit.label.StaticFileIngestors;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.sql.Connection;
 
 import com.fasterxml.jackson.databind.JsonNode;
