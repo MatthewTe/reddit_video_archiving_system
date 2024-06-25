@@ -171,6 +171,9 @@ public class RedditHostedVideoIngestorTest {
 
                 assertEquals(updatedPost.getId(), "example_hosted_video_id");
                 assertTrue(updatedPost.isStaticDownloaded());
+                assertEquals(updatedPost.getId() + "/", updatedPost.getStaticRootPath());
+                assertEquals("hosted:video", updatedPost.getStaticFileType());
+
 
             }
 

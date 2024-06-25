@@ -266,12 +266,16 @@ public class RedditHostedVideoIngestor implements StaticFileIngestor {
                 }
 
                 // Database update to indicate that static files have been ingested:
-                int flagUpdatedResult = SubredditTablesDB.updateStaticDownloadedFlagTrue(conn, redditPost.getId());
-                
-                if (flagUpdatedResult == -1) {
-                    System.out.printf("Error in updating the boolean flag in the database for post: %s \n", redditPost.getId());
+                redditPost.setStaticDownloaded(true);
+                redditPost.setStaticRootPath(redditPost.getId() + "/");
+                redditPost.setStaticFileType("hosted:video");
+
+                int staticFieldUpdatedResult = SubredditTablesDB.updateStaticFields(conn, redditPost);
+
+                if (staticFieldUpdatedResult == -1) {
+                    System.out.printf("Error in updating the static variable fields in the database for post: %s \n", redditPost.getId());
                 } else {
-                    System.out.printf("Successfully updated the boolean flag in the database for post: %s \n", redditPost.getId());
+                    System.out.printf("Successfully updated static variable fields in the database for post: %s \n", redditPost.getId());
                 }
 
 

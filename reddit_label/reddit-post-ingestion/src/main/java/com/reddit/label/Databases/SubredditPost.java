@@ -15,9 +15,24 @@ public class SubredditPost {
     private String screenshotPath;
     private String jsonPostPath;
     private String staticRootPath;
+    private String staticFileType;
+
+    public SubredditPost(String id) {
+        this.id = id;
+    }
+
+    public SubredditPost(String id, String subreddit, String screenshotPath, String jsonPostPath, String staticRootPath,
+            String staticFileType) {
+        this.id = id;
+        this.subreddit = subreddit;
+        this.screenshotPath = screenshotPath;
+        this.jsonPostPath = jsonPostPath;
+        this.staticRootPath = staticRootPath;
+        this.staticFileType = staticFileType;
+    }
 
     public SubredditPost(String id, String subreddit, String url, boolean staticDownloaded, String screenshotPath,
-            String jsonPostPath, Timestamp insertedDate, String staticRootPath) {
+            String jsonPostPath, Timestamp insertedDate, String staticRootPath, String staticFileType) {
         this.id = id;
         this.subreddit = subreddit;
         this.url = url;
@@ -26,6 +41,7 @@ public class SubredditPost {
         this.jsonPostPath = jsonPostPath;
         this.insertedDate = insertedDate;
         this.staticRootPath = staticRootPath;
+        this.staticFileType = staticFileType;
     }
 
     public Timestamp getInsertedDate() {
@@ -36,6 +52,13 @@ public class SubredditPost {
         this.insertedDate = insertedDate;
     }
 
+    public SubredditPost(String id, String screenshotPath, String jsonPostPath, String staticRootPath) {
+        this.id = id;
+        this.screenshotPath = screenshotPath;
+        this.jsonPostPath = jsonPostPath;
+        this.staticRootPath = staticRootPath;
+    }
+
     public SubredditPost(String id, String subreddit, String url, boolean staticDownloaded) {
         this.id = id;
         this.subreddit = subreddit;
@@ -43,12 +66,7 @@ public class SubredditPost {
         this.staticDownloaded = staticDownloaded;
     }
 
-    public SubredditPost(String id, String screenshotPath, String jsonPostPath, String staticRootPath) {
-        this.id = id;
-        this.screenshotPath = screenshotPath;
-        this.jsonPostPath = jsonPostPath;
-        this.staticRootPath = staticRootPath;
-    }
+
 
     public String getScreenshotPath() {
         return screenshotPath;
@@ -106,9 +124,18 @@ public class SubredditPost {
         this.staticDownloaded = staticDownloaded;
     }
 
+    public String getStaticFileType() {
+        return staticFileType;
+    }
+
+    public void setStaticFileType(String staticFileType) {
+        this.staticFileType = staticFileType;
+    }
+
     @Override
     public String toString() {
         return "SubredditPost [id=" + id + ", subreddit=" + subreddit + ", url=" + url + ", staticDownloaded="
                 + staticDownloaded + "]";
     }
+    
 }

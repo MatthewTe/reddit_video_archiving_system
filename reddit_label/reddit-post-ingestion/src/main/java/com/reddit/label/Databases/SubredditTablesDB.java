@@ -18,6 +18,7 @@ public class SubredditTablesDB {
                     url TEXT NOT NULL,
                     static_downloaded BOOLEAN NOT NULL,
                     static_root_url TEXT DEFAULT NULL,
+                    static_file_type VARCHAR(50) NULL,
                     screenshot TEXT,
                     json_post TEXT,
                     inserted_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -75,9 +76,10 @@ public class SubredditTablesDB {
                 static_downloaded,
                 static_root_url,
                 screenshot,
+                static_file_type,
                 json_post
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (var pstmt = conn.prepareStatement(insertStatement, Statement.RETURN_GENERATED_KEYS)) {
@@ -91,7 +93,8 @@ public class SubredditTablesDB {
                 pstmt.setBoolean(4, post.isStaticDownloaded());
                 pstmt.setString(5, post.getStaticRootPath());
                 pstmt.setString(6, post.getScreenshotPath());
-                pstmt.setString(7, post.getJsonPostPath());
+                pstmt.setString(7, post.getStaticFileType());
+                pstmt.setString(8, post.getJsonPostPath());
                 
                 pstmt.addBatch();
 
@@ -112,8 +115,6 @@ public class SubredditTablesDB {
 
     }   
 
-
-
     public static SubredditPost getPost(Connection conn, String id) {
         String idQuery = """
             SELECT 
@@ -124,7 +125,8 @@ public class SubredditTablesDB {
                 screenshot, 
                 json_post, 
                 inserted_date, 
-                static_root_url  
+                static_root_url,
+                static_file_type  
             FROM subreddit_posts WHERE id = ?""";
 
         try (PreparedStatement pstmt = conn.prepareStatement(idQuery)) {
@@ -142,11 +144,91 @@ public class SubredditTablesDB {
                     result.getString("screenshot"), 
                     result.getString("json_post"), 
                     result.getTimestamp("inserted_date"),
-                    result.getString("static_root_url")
+                    result.getString("static_root_url"),
+                    result.getString("static_file_type")
                 );
 
                 return post;
             }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static List<String> getPostIdsNoStatic(Connection conn, int limit) {
+
+        var query = "SELECT id FROM subreddit_posts WHERE static_downloaded = false LIMIT = ?";
+        List<String> postIds = new ArrayList<>();
+
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, limit);
+
+            ResultSet result = pstmt.executeQuery();
+
+            while (result.next()) {
+                postIds.add(result.getString("id"));
+            }
+
+            return postIds;
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    public static List<SubredditPost> getPostsNoStatic(Connection conn, int limit) {
+
+        var query = """
+            SELECT
+                id, 
+                subreddit, 
+                url, 
+                static_downloaded, 
+                screenshot, 
+                json_post, 
+                inserted_date, 
+                static_root_url,
+                static_file_type  
+            FROM subreddit_posts 
+            WHERE static_downloaded = false 
+            AND static_file_type IS NULL
+            LIMIT ?
+            """;
+        
+        List<SubredditPost> posts = new ArrayList<>();
+
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            pstmt.setInt(1, limit);
+
+            ResultSet result = pstmt.executeQuery();
+
+            while (result.next()) {
+
+                SubredditPost post = new SubredditPost(
+                    result.getString("id"), 
+                    result.getString("subreddit"), 
+                    result.getString("url"), 
+                    result.getBoolean("static_downloaded"), 
+                    result.getString("screenshot"), 
+                    result.getString("json_post"), 
+                    result.getTimestamp("inserted_date"),
+                    result.getString("static_root_url"),
+                    result.getString("static_file_type")
+                );
+
+                posts.add(post);
+            }
+
+            return posts;
+
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -215,7 +297,7 @@ public class SubredditTablesDB {
         return -1;
     }
 
-    public static int updateSubredditPostStaicPath(Connection conn, String id, String staticPath) {
+    public static int updateSubredditPostStaticPath(Connection conn, String id, String staticPath) {
 
         var updateQuery = "UPDATE subreddit_posts SET static_root_url = ? WHERE id = ?";
 
@@ -246,6 +328,53 @@ public class SubredditTablesDB {
             int result = pstmt.executeUpdate();
 
             return result;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+
+    }
+
+    public static int updateStaticFields(Connection conn, SubredditPost post) {
+                    
+        var updateStaticFieldQuery = """
+                UPDATE subreddit_posts
+                SET static_downloaded = ?,
+                static_root_url = ?,
+                static_file_type = ?
+                WHERE id = ?
+                """;
+
+        try (PreparedStatement pstmt = conn.prepareStatement(updateStaticFieldQuery)) {
+            pstmt.setBoolean(1, post.isStaticDownloaded());
+            pstmt.setString(2, post.getStaticRootPath());
+            pstmt.setString(3, post.getStaticFileType());
+            pstmt.setString(4, post.getId());
+
+            int result = pstmt.executeUpdate();
+
+            return result;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
+    public static int updateStaticFileType(Connection conn, String id, String fileType) {
+        var updateQuery = "UPDATE subreddit_posts SET static_file_type = ? WHERE id = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(updateQuery)) {
+            pstmt.setString(1, fileType);
+            pstmt.setString(2, id);
+
+            int result = pstmt.executeUpdate();
+
+            return result;
+
 
         } catch (SQLException e) {
             e.printStackTrace();

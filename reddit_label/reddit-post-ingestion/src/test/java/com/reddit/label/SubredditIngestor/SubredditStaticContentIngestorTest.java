@@ -62,6 +62,7 @@ public class SubredditStaticContentIngestorTest {
             null,
             null,
             null,
+            null,
             null
         );
 
@@ -102,6 +103,7 @@ public class SubredditStaticContentIngestorTest {
             "ExampleSubreddit",
             "https://www.reddit.com/r/pics/comments/1dgpdng/the_british_aircraft_carrier_hms_queen_elizabeth/",
             false,
+            null,
             null,
             null,
             null,

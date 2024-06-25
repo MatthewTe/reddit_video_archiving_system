@@ -39,8 +39,8 @@ public class SubredditTablesDBTest {
     void testInsertBasicSubredditPost() throws SQLException {
         
         List<SubredditPost> posts = new ArrayList<>();
-        posts.add(new SubredditPost("id1", "subreddit1", "url1", true, "screenshotPath1", "jsonPostPath1", null, "staticRootPath1"));
-        posts.add(new SubredditPost("id2", "subreddit2", "url2", false, "screenshotPath2", "jsonPostPath2", null, "staticRootPath2"));
+        posts.add(new SubredditPost("id1", "subreddit1", "url1", true, "screenshotPath1", "jsonPostPath1", null, "staticRootPath1", "testPath"));
+        posts.add(new SubredditPost("id2", "subreddit2", "url2", false, "screenshotPath2", "jsonPostPath2", null, "staticRootPath2", "testPath"));
 
         int insertedRecords = SubredditTablesDB.InsertBasicSubredditPost(conn, posts);
 
@@ -66,7 +66,9 @@ public class SubredditTablesDBTest {
             "test_screenshot_path", 
             "test_json_path", 
             null,
-            "test_staticroot_path"));
+            "test_staticroot_path",
+            "test_static_file_type"
+        ));
 
         int insertedSubreddit = SubredditTablesDB.InsertFullSubredditPost(conn, posts);
         assertEquals(insertedSubreddit, 1); 
@@ -80,13 +82,14 @@ public class SubredditTablesDBTest {
         assertEquals(postFromDatabase.getScreenshotPath(), "test_screenshot_path");
         assertEquals(postFromDatabase.getStaticRootPath(), "test_staticroot_path");
         assertEquals(postFromDatabase.getUrl(), "url_test");
+        assertEquals(postFromDatabase.getStaticFileType(), "test_static_file_type");
     }
 
     @Test
     void testUpdateSubredditJSON() {
 
         List<SubredditPost> jsonPosts = new ArrayList<>();
-        jsonPosts.add(new SubredditPost("id_for_test_json", "", "", true, "screenshotPath1", "inital_json_path", null, "staticRootPath1"));
+        jsonPosts.add(new SubredditPost("id_for_test_json", "", "", true, "screenshotPath1", "inital_json_path", null, "staticRootPath1", "staticFileType"));
 
         int insertedSubreddit = SubredditTablesDB.InsertFullSubredditPost(conn, jsonPosts);
         assertEquals(insertedSubreddit, 1);
@@ -99,14 +102,13 @@ public class SubredditTablesDBTest {
 
         SubredditPost subredditFromDatabaseUpdatedJson = SubredditTablesDB.getPost(conn, "id_for_test_json");
         assertEquals(subredditFromDatabaseUpdatedJson.getJsonPostPath(), "a_new_json_path");
-
     }
 
     @Test
     void testUpdateSubredditPostScreenshot() {
 
         List<SubredditPost> screenshotPosts = new ArrayList<>();
-        screenshotPosts.add(new SubredditPost("id_for_test_screenshot", "", "", true, "initial_screenshot_path", "", null, "staticRootPath1"));
+        screenshotPosts.add(new SubredditPost("id_for_test_screenshot", "", "", true, "initial_screenshot_path", "", null, "staticRootPath1", "staticFileType"));
 
         int insertedSubreddit = SubredditTablesDB.InsertFullSubredditPost(conn, screenshotPosts);
         assertEquals(insertedSubreddit, 1);
@@ -126,7 +128,7 @@ public class SubredditTablesDBTest {
     void testUpdateSubredditPostStaicPath() {
 
         List<SubredditPost> statcPathPosts = new ArrayList<>();
-        statcPathPosts.add(new SubredditPost("id_for_test_static_path", "", "", true, "", "", null, "inital_static_root_path"));
+        statcPathPosts.add(new SubredditPost("id_for_test_static_path", "", "", true, "", "", null, "inital_static_root_path", "staticFileType"));
 
         int insertedSubreddit = SubredditTablesDB.InsertFullSubredditPost(conn, statcPathPosts);
         assertEquals(insertedSubreddit, 1);
@@ -134,7 +136,7 @@ public class SubredditTablesDBTest {
         SubredditPost subredditFromDatabase = SubredditTablesDB.getPost(conn, "id_for_test_static_path");
         assertEquals(subredditFromDatabase.getStaticRootPath(), "inital_static_root_path");
 
-        int updateQueryResult = SubredditTablesDB.updateSubredditPostStaicPath(conn, "id_for_test_static_path", "a_new_static_path");
+        int updateQueryResult = SubredditTablesDB.updateSubredditPostStaticPath(conn, "id_for_test_static_path", "a_new_static_path");
         assertEquals(updateQueryResult, 1);       
 
         SubredditPost subredditFromDatabaseUpdatedStaticFile = SubredditTablesDB.getPost(conn, "id_for_test_static_path");
@@ -171,4 +173,35 @@ public class SubredditTablesDBTest {
         assertEquals(updatedPost.isStaticDownloaded(),true); 
 
     }
+
+    @Test
+    void testUpdateStaticFileType() {
+        List<SubredditPost> staticFlagUpdatePosts = new ArrayList<>();
+        SubredditPost updatedFlagSubredditPost = new SubredditPost("id_testing_for_static_file_type");
+
+        updatedFlagSubredditPost.setSubreddit("TestSubreddit");
+        updatedFlagSubredditPost.setUrl("test_url");
+
+        updatedFlagSubredditPost.setStaticFileType("hosted:video");
+        updatedFlagSubredditPost.setStaticRootPath("id_testing_for_static_file_type");
+        updatedFlagSubredditPost.setStaticDownloaded(true);
+        
+        staticFlagUpdatePosts.add(updatedFlagSubredditPost);
+
+        int insertedSubreddit = SubredditTablesDB.InsertBasicSubredditPost(conn, staticFlagUpdatePosts);
+        assertEquals(1, insertedSubreddit);
+
+
+        int insertedPost = SubredditTablesDB.updateStaticFields(conn, updatedFlagSubredditPost);
+        assertEquals(insertedPost, 1);
+
+        SubredditPost updatedStaticFieldsPost = SubredditTablesDB.getPost(conn, "id_testing_for_static_file_type");
+
+        assertEquals("id_testing_for_static_file_type", updatedStaticFieldsPost.getId());
+        assertEquals("hosted:video", updatedStaticFieldsPost.getStaticFileType());
+        assertEquals("id_testing_for_static_file_type", updatedStaticFieldsPost.getStaticRootPath());
+        assertEquals(true, updatedStaticFieldsPost.isStaticDownloaded());
+
+    }
+
 }
