@@ -71,8 +71,8 @@ public class Main
 
         Connection conn = DB.connect();
         MinioClient minioClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
+            .endpoint(BlobStorageConfig.getMinioEndpoint())
+            .credentials(BlobStorageConfig.getMinioUserId(), BlobStorageConfig.getMinioAccesskey())
             .build();
 
 
@@ -82,7 +82,7 @@ public class Main
 
             for (SubredditPost post: postsToProcess) {
                 
-                Thread.sleep(5000);
+                Thread.sleep(4000);
 
                 System.out.println(post.getId());
 
@@ -127,6 +127,8 @@ public class Main
 
                         System.out.printf("Post %s has a static file type of video:hosted. Beginning static file ingestion.", post.getId());
 
+                        Thread.sleep(500);
+
                         RedditHostedVideoIngestor hostedVideoIngestor = new RedditHostedVideoIngestor();
                         hostedVideoIngestor.fileToBlob(
                             post, 
@@ -136,6 +138,8 @@ public class Main
                             minioClient);
 
                             System.out.printf("Finished ingesting all data for post %s \n", post.getId());
+
+                        Thread.sleep(500);
 
                     } else {
                         // Update here as I add parsers:
@@ -156,11 +160,12 @@ public class Main
             }
 
             numRuns--;
+            System.out.println("We are on run: " + String.valueOf(numRuns));
 
             Thread.sleep(2000);
         }
 
-
+        return;
 
     }
 
