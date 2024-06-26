@@ -160,7 +160,7 @@ public class SubredditTablesDB {
 
     public static List<String> getPostIdsNoStatic(Connection conn, int limit) {
 
-        var query = "SELECT id FROM subreddit_posts WHERE static_downloaded = false LIMIT = ?";
+        var query = "SELECT id FROM subreddit_posts WHERE static_downloaded = false LIMIT ?";
         List<String> postIds = new ArrayList<>();
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {

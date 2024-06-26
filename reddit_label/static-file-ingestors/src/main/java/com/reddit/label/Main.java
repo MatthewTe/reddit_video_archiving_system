@@ -118,8 +118,7 @@ public class Main
                         System.out.printf("Sucessfully set the static file type for post %s to unknown", post.getId());
                     }
                 }
-
-        }
+            }
 
         }
 
