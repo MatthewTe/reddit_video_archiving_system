@@ -4,6 +4,10 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+
 public class DB {
     public static Connection connect() throws SQLException {
 
@@ -41,4 +45,17 @@ public class DB {
         }
 
     }
+
+    public static Driver connectGraphDB() {
+        return GraphDatabase.driver(GraphDatabaseConfig.getDbUrl(), 
+            AuthTokens.basic(GraphDatabaseConfig.getDbUsername(), GraphDatabaseConfig.getDbPassword())
+        );
+    }
+
+    public static Driver connectTestGraphB() {
+        return GraphDatabase.driver(GraphDatabaseConfig.getTestDbUrl(), 
+            AuthTokens.basic(GraphDatabaseConfig.getTestDbUsername(), GraphDatabaseConfig.getTestDbPassword())
+        );
+    }
+
 }

@@ -126,7 +126,7 @@ public class SubredditTablesDB {
                 json_post, 
                 inserted_date, 
                 static_root_url,
-                static_file_type  
+                static_file_type,
             FROM subreddit_posts WHERE id = ?""";
 
         try (PreparedStatement pstmt = conn.prepareStatement(idQuery)) {

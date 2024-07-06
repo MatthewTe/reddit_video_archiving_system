@@ -145,6 +145,7 @@ public class Main
                         // Update here as I add parsers:
                         System.out.printf(
                             "Parsed JSON from post %s. The static file type was %s which is not currently supported. Setting static_file_type to unknown", 
+                            post.getId(),
                             parsedJsonResponse.initalPostFields.getStaticFileType()
                         );
 
