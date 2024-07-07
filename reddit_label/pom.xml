@@ -101,6 +101,7 @@
     <module>static-file-ingestors</module>
     <module>reddit-post-ingestion</module>
     <module>ingestion-webserver</module>
+    <module>graph-ingestion</module>
   </modules>
 
 </project>

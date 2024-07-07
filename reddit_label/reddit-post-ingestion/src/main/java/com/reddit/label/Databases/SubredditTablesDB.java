@@ -257,6 +257,55 @@ public class SubredditTablesDB {
         return postIds;
     }
 
+    public static List<SubredditPost> getPostsBasedOnStaticFileType(Connection conn, String staticFileType) {
+        var queryStaticFileType = """
+            SELECT
+                id, 
+                subreddit, 
+                url, 
+                static_downloaded, 
+                screenshot, 
+                json_post, 
+                inserted_date, 
+                static_root_url,
+                static_file_type  
+            FROM subreddit_posts 
+            WHERE static_downloaded = true
+            AND static_file_type = ?
+        """;
+
+        try (var pstmt = conn.prepareStatement(queryStaticFileType)) {
+            
+            pstmt.setString(1, staticFileType);
+
+           ResultSet result = pstmt.executeQuery();
+            List<SubredditPost> posts = new ArrayList<>();
+
+            while (result.next()) {
+                SubredditPost post = new SubredditPost(
+                    result.getString("id"), 
+                    result.getString("subreddit"), 
+                    result.getString("url"), 
+                    result.getBoolean("static_downloaded"), 
+                    result.getString("screenshot"), 
+                    result.getString("json_post"), 
+                    result.getTimestamp("inserted_date"),
+                    result.getString("static_root_url"),
+                    result.getString("static_file_type")
+                );
+
+                posts.add(post);
+            }
+
+            return posts;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }   
+
+        return null;
+    }
+
     public static int updateSubredditPostScreenshot(Connection conn, String id, String screenshotPath) {
         var updatePostQuery = "UPDATE subreddit_posts SET screenshot = ? WHERE id = ?;";
 
