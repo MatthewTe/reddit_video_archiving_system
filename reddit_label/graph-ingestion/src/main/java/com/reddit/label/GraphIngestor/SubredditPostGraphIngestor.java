@@ -2,16 +2,79 @@ package com.reddit.label.GraphIngestor;
 
 import static org.neo4j.driver.Values.parameters;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.reddit.label.Databases.SubredditPost;
+
+import io.minio.GetObjectArgs;
+import io.minio.MinioClient;
+import io.minio.errors.ErrorResponseException;
+import io.minio.errors.InsufficientDataException;
+import io.minio.errors.InternalException;
+import io.minio.errors.InvalidResponseException;
+import io.minio.errors.ServerException;
+import io.minio.errors.XmlParserException;
 
 public class SubredditPostGraphIngestor {
 
-    public static RedditPostGraphIngestionResponse IngestSubredditPostVideo(SubredditPost post, Driver neo4jDriver) {
+    public static RedditPostGraphIngestionResponse IngestSubredditPostVideo(SubredditPost post, MinioClient minioClient,  Driver neo4jDriver) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+
+        StringBuilder content = new StringBuilder();
+        // Download and Parse the JSON object to get the title and the other parameters:
+        try (InputStream stream = minioClient.getObject(
+            GetObjectArgs.builder()
+            .bucket("reddit-posts")
+            .object(post.getJsonPostPath())
+            .build())) {
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    content.append(line).append("\n");
+                }
+            }
+        }
+
+        System.out.println("Beginning parsing JSON object to extract title and created date");
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode rootNode = objectMapper.readTree(content.toString());
+        
+        String redditPostTitle = null;
+        String redditPostCreataedDate = null;
+
+        if (rootNode.isArray()) {
+            ArrayNode rootArrayNode = (ArrayNode)rootNode;
+            JsonNode firstArrayItem = rootArrayNode.get(0);
+            JsonNode mainAttributesNode = firstArrayItem.get("data").get("children").get(0).get("data");
+
+            redditPostTitle = mainAttributesNode.get("title").asText();
+            redditPostCreataedDate = mainAttributesNode.get("created").asText();
+            
+            System.out.printf("Extracted title for reddit post: %s \n", redditPostTitle);
+            System.out.printf("Extracted created date %s for reddit post: %s \n", redditPostCreataedDate, redditPostTitle);
+
+        }            
+
+        if ((redditPostTitle == null) || (redditPostCreataedDate == null)) {
+            System.out.printf("Either post title or created date were null. Exiting ingestion for Reddit Post %s \n", post.getId());
+            System.out.printf("redditPostTitle: %s \n", redditPostTitle);
+            System.out.printf("redditPostCreataedDate: %s \n", redditPostCreataedDate);
+
+            return null;
+        }
 
         // Creating the necessary nodes in neo4j:
         try (Session session = neo4jDriver.session()) {
@@ -22,10 +85,14 @@ public class SubredditPostGraphIngestor {
 
             var createQuery = new Query("""
                 CREATE (inital_reddit_post:Entity:RedditPost {
+                    title: $subreddit_title,
+                    created: $date_created,
                     id: $id,
                     subreddit: $subreddit,
                     url: $url,
                     static_file_type: $static_file_type,
+                    json: $json_filepath,
+                    screenshot: $screenshot_static_path,
                     avg_location: null
                 })
 
@@ -34,29 +101,15 @@ public class SubredditPostGraphIngestor {
                     avg_location: null
                 })
 
-                CREATE (reddit_post_screenshot:StaticFile:RedditPost:Screenshot {
-                    filepath: $screenshot_static_path,
-                    avg_location: null
-                })
-
-                CREATE (reddit_post_json:StaticFile:RedditPost:Json {
-                    filepath: $json_filepath,
-                    avg_location: null
-                })
-
                 CREATE (inital_reddit_post)-[:CONTAINED]->(reddit_post_video)
                 CREATE (reddit_post_video)-[:EXTRACTED_FROM]->(inital_reddit_post)
 
-                CREATE (inital_reddit_post)-[:CONTAINED]->(reddit_post_screenshot)
-                CREATE (reddit_post_screenshot)-[:EXTRACTED_FROM]->(inital_reddit_post)
-
-                CREATE (inital_reddit_post)-[:CONTAINED]->(reddit_post_json)
-                CREATE (reddit_post_json)-[:EXTRACTED_FROM]->(inital_reddit_post)
-
-                RETURN inital_reddit_post.id, reddit_post_video.filepath, reddit_post_screenshot.filepath, reddit_post_json.filepath;
+                RETURN inital_reddit_post.id, inital_reddit_post.json, inital_reddit_post.screenshot, reddit_post_video.filepath;
                 """,
                 parameters(
-                    "id", post.getId(), 
+                    "id", post.getId(),
+                    "subreddit_title", redditPostTitle,
+                    "date_created", redditPostCreataedDate,
                     "subreddit", post.getSubreddit(),
                     "url", post.getUrl(),
                     "static_file_type", post.getStaticFileType(),
@@ -72,8 +125,8 @@ public class SubredditPostGraphIngestor {
                 var record = result.next();
                 String redditPost = record.get("inital_reddit_post.id").asString();
                 String videoNode = record.get("reddit_post_video.filepath").asString();
-                String screenshotNode = record.get("reddit_post_screenshot.filepath").asString();
-                String jsonNode = record.get("reddit_post_json.filepath").asString();
+                String screenshotNode = record.get("inital_reddit_post.screenshot").asString();
+                String jsonNode = record.get("inital_reddit_post.json").asString();
 
                 System.out.printf("Ingested Reddit Post: %s \n", redditPost);
                 System.out.printf("Ingested Video Node: %s \n", videoNode);

@@ -6,11 +6,14 @@ import java.util.List;
 
 import org.neo4j.driver.Driver;
 
+import com.reddit.label.BlobStorage.BlobStorageConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.GraphIngestor.RedditPostGraphIngestionResponse;
 import com.reddit.label.GraphIngestor.SubredditPostGraphIngestor;
+
+import io.minio.MinioClient;
 
 public class Main {
 
@@ -19,6 +22,10 @@ public class Main {
         // Getting all of the subreddit posts where the static data has been ingested and the file type is
         Connection conn = DB.connect();
         Driver driver = DB.connectGraphDB();
+        MinioClient minioClient = MinioClient.builder()
+            .endpoint(BlobStorageConfig.getMinioEndpoint())
+            .credentials(BlobStorageConfig.getMinioUserId(), BlobStorageConfig.getMinioAccesskey())
+            .build();
 
         List<SubredditPost> postsToIngest = SubredditTablesDB.getPostsBasedOnStaticFileType(conn, "hosted:video");
 
@@ -27,7 +34,7 @@ public class Main {
 
             System.out.printf("Beginning to insert reddit post %s to graph database\n", post.getId());
             try {
-                RedditPostGraphIngestionResponse postIngestionResponse = SubredditPostGraphIngestor.IngestSubredditPostVideo(post, driver);
+                RedditPostGraphIngestionResponse postIngestionResponse = SubredditPostGraphIngestor.IngestSubredditPostVideo(post, minioClient, driver);
                 System.out.printf("Ingested the subreddit post %s into the graph database:  \n", postIngestionResponse.getRedditPostId());
 
             } catch (Exception e) {

@@ -59,9 +59,21 @@
     </dependency>
 
     <dependency>
+      <groupId>io.minio</groupId>
+      <artifactId>minio</artifactId>
+      <version>8.5.10</version>
+    </dependency>
+
+    <dependency>
       <groupId>com.reddit.label</groupId>
       <artifactId>reddit-post-ingestion</artifactId>
       <version>1.0-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.15.2</version>
     </dependency>
 
   </dependencies>
