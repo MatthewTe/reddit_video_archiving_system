@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 
-import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
@@ -44,11 +44,7 @@ public class SubredditPostGraphIngestorTest {
     void setUp() throws SQLException {
 
         driver = DB.connectTestGraphB();
-        minioClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-        
+        minioClient = MinioClientConfig.geTestMinioClient();        
             conn = DB.connectTestDB();
 
         SubredditTablesDB.createSubredditTables(conn);

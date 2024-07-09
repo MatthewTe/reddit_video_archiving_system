@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
@@ -98,11 +98,7 @@ public class EndToEndTests {
         SubredditPost correctVideoPost = SubredditTablesDB.getPost(conn, "valid_hosted_video_post");
         postsToProcess.add(correctVideoPost);
 
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-
+        MinioClient testClient = MinioClientConfig.geTestMinioClient();
         for (SubredditPost post: postsToProcess) {
  
             System.out.println(post.getId());
@@ -269,11 +265,7 @@ public class EndToEndTests {
         SubredditPost picturePost = SubredditTablesDB.getPost(conn, "invalid_hosted_video_post");
         postsToProcess.add(picturePost);
 
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-
+        MinioClient testClient = MinioClientConfig.geTestMinioClient();
         for (SubredditPost post: postsToProcess) {
  
             System.out.println(post.getId());

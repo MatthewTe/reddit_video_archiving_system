@@ -26,7 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.reddit.label.RedditContentPostType;
 import com.reddit.label.RedditJsonParserResponse;
 import com.reddit.label.RedditPostJsonDefaultAttributes;
-import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
@@ -91,11 +91,7 @@ public class RedditHostedVideoIngestorTest {
         assertEquals(insertedSubredditPostResult, 1);
 
         // Download the JSON:
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-
+        MinioClient testClient = MinioClientConfig.geTestMinioClient();
         String jsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, examplePostWHostedVideo);
         assertEquals("example_hosted_video_id/post.json", jsonPath);
 
@@ -203,11 +199,7 @@ public class RedditHostedVideoIngestorTest {
         assertEquals(insertedSubredditPostResult, 1);
 
         // Download the JSON:
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint())
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-
+        MinioClient testClient = MinioClientConfig.geTestMinioClient();
         String jsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, examplePostWPicture);
         assertEquals("example_hosted_pic_id/post.json", jsonPath);
 

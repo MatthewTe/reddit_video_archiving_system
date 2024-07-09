@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.neo4j.driver.Driver;
 
-import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
@@ -22,11 +22,7 @@ public class Main {
         // Getting all of the subreddit posts where the static data has been ingested and the file type is
         Connection conn = DB.connect();
         Driver driver = DB.connectGraphDB();
-        MinioClient minioClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioEndpoint())
-            .credentials(BlobStorageConfig.getMinioUserId(), BlobStorageConfig.getMinioAccesskey())
-            .build();
-
+        MinioClient minioClient = MinioClientConfig.getMinioClient();
         List<SubredditPost> postsToIngest = SubredditTablesDB.getPostsBasedOnStaticFileType(conn, "hosted:video");
 
         // Iterate through each post and ingests the item into the Neo4J database: 

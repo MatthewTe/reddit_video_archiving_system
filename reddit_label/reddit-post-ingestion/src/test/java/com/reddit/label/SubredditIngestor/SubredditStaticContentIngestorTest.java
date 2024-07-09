@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
@@ -75,11 +76,7 @@ public class SubredditStaticContentIngestorTest {
         SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "example_json_id");
         assertEquals("example_json_id", postFromDB.getId());
         
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint(), 9000, false)
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
-
+        MinioClient testClient = MinioClientConfig.geTestMinioClient();
         String staticFileJsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, postFromDB);
         System.out.println(staticFileJsonPath);
         assertEquals("example_json_id/post.json", staticFileJsonPath);

@@ -17,6 +17,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
 import com.reddit.label.BlobStorage.BlobStorageConfig;
+import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.Parsers.RedditJsonParser;
@@ -70,11 +71,7 @@ public class Main
 
 
         Connection conn = DB.connect();
-        MinioClient minioClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioEndpoint())
-            .credentials(BlobStorageConfig.getMinioUserId(), BlobStorageConfig.getMinioAccesskey())
-            .build();
-
+        MinioClient minioClient = MinioClientConfig.getMinioClient();
 
         while (numRuns > 0) {
             List<SubredditPost> postsToProcess = SubredditTablesDB.getPostsNoStatic(conn, batchSize);
