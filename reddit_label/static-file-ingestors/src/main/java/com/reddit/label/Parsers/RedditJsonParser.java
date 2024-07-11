@@ -25,6 +25,19 @@ public class RedditJsonParser {
    }
 
     public static RedditJsonParserResponse parseDefaultRedditPostJson(String fullJsonString) throws JsonProcessingException, IOException {
+        /**
+         * Ingests the String representation of the json file assocaited with an individual subreddit post parses it
+         * to extract several key fields using Jackson.
+         * 
+         * Many of the attributes for reddit post's json representation are universial such as the title, subreddit, url and id
+         * but the parser also determines what media is present in the reddit post. Eg: Does the post contain a video, images, a gif etc.
+         * 
+         * The way of determining the media type is unique for each media type and this is the main purpose of this method.
+         * 
+         * @param fullJsonString The full string representation of the JSON file to be parsed. 
+         * 
+         * @returns RedditJsonParserResponse The object containing all of of the extracted fields from the parsed Json file.
+         */
 
         RedditPostJsonDefaultAttributes defaultAttributes = new RedditPostJsonDefaultAttributes();
 
@@ -44,6 +57,7 @@ public class RedditJsonParser {
             defaultAttributes.setUrl(mainAttributesNode.get("url").asText());
             defaultAttributes.setId(mainAttributesNode.get("id").asText());
 
+            // Determining the media associated with the post:
             if (!mainAttributesNode.has("post_hint")) {
                 System.out.println("post_hint not found in the subreddit. Setting the attribute to null");
                 defaultAttributes.setPostHint(null);
@@ -58,8 +72,6 @@ public class RedditJsonParser {
                 } else if (postHint.contains("image")) {
                     defaultAttributes.setStaticFileType(RedditContentPostType.IMAGE);
                 }
-
-
 
             }
 

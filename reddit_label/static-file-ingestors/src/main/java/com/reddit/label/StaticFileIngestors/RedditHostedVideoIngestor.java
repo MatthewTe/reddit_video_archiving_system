@@ -44,6 +44,30 @@ import com.reddit.label.Databases.SubredditTablesDB;
 public class RedditHostedVideoIngestor implements StaticFileIngestor {
 
     public String fileToBlob(SubredditPost redditPost, RedditPostJsonDefaultAttributes defaultPostAttributes, JsonNode redditPostNode, Connection conn, MinioClient minioClient) throws MalformedURLException, IOException {
+        /**
+         * Method that ingests a reddit hosted video into blob based on an existing reddit post in the metadata db.
+         * 
+         * Video is ingested based on several assumptions on how video for posts is served. Video is served using the MPEG-DASH MPD 
+         * protocol (https://ottverse.com/structure-of-an-mpeg-dash-mpd/) and the ingestor ingests enough data to make MPD streaming
+         * from blob storage possible.
+         * 
+         * It downloads the .MPD file pointing to all of the video chunks.
+         * For each video period it grabs the highest quality video and audio components and stores them in blob. It does so by using
+         * an xml parser called MDPFileParser. 
+         * 
+         * If all of the audio and video periods have been uploaded correctly, the metadata db entry for the reddit post is updated 
+         * to indicate that the static file content for the post has been ingested and what the path to the static file content is.
+         * 
+         * @param redditPost The subreddit post object. For this function to work it is assumed that the subreddit post object has
+         *             has already been inserted into the database (there is a db record with this post id) and that it has a url parameter.
+         *             and that the static file type has been set to 'hosted:media'
+         * @param redditPostNode A RedditPostJsonDefaultAttributes object containin the parsed fields from the posts' json file. These parsed
+         *                       attributes have been used to determine that hosted video ingestion is to be performed, and the additional fields
+         *                       that have been extracted will assist this function in ingesting the video
+         * @param conn The postgres database connection for the metadata table.
+         * @param minioClient The client used to connect to blob storage
+
+         */
 
         if (defaultPostAttributes.getStaticFileType() != RedditContentPostType.HOSTED_VIDEO) {
             System.out.printf("Warining! Reddit Post Hosted Video Ingestor has been called on a post with a different static file type: %s. Exiting without ingesting static content", RedditContentPostType.HOSTED_VIDEO);

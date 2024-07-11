@@ -16,7 +16,6 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.reddit.label.BlobStorage.BlobStorageConfig;
 import com.reddit.label.BlobStorage.MinioClientConfig;
 import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditTablesDB;

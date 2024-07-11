@@ -3,6 +3,11 @@ package com.reddit.label.BlobStorage;
 import io.minio.MinioClient;
 
 public class MinioClientConfig {
+    /*
+     * Returns the various configurations of the MinioClient. Pulls the configuration params
+     * from the varios Config objects. Serves as an abstraction layer over the Config objects that
+     * pull various params from the running environment.
+     */
 
     public static MinioClient getMinioClient() {
         return MinioClient.builder()

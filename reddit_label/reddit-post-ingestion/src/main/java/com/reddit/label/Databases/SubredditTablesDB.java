@@ -9,7 +9,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SubredditTablesDB {
-    
+    /**
+     * Stores various convience methods for querying Subreddit Posts from the Metadata postgres tables.
+    */   
+
     public static void createSubredditTables(Connection conn) {
         String createSubredditPostsTable = """
                 CREATE TABLE IF NOT EXISTS subreddit_posts (

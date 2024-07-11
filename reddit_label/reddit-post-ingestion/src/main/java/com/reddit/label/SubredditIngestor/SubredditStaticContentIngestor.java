@@ -40,6 +40,21 @@ import io.minio.errors.XmlParserException;
 public class SubredditStaticContentIngestor {
     
     public static String IngestJSONContent(Connection conn, MinioClient minioClient, SubredditPost post) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException {
+        /**
+         * Given a subreddit post object it makes an HTTP request to the JSON endpoint of a reddit post already stored in the metadata db. Takes the JSON response and 
+         * uploads it to blob storage at the following location:
+         *  {reddit_post_id}/posts.json
+         * 
+         * Once the json file has been uploaded to blob the method updates the metadata db record with the static filepath to the uploaded json.
+         * 
+         * @param conn The postgres database connection for the metadata table.
+         * @param minioClient The client used to connect to blob storage
+         * @param post The subreddit post object that the Json file will be ingested from. For this function to work it is assumed that the subreddit post object has
+         *             has already been inserted into the database (there is a db record with this post id) and that it has a url parameter.
+         * 
+         * @return String The filepath to the json blob.
+         * 
+         */
 
         var client = HttpClient.newHttpClient();
         var request = HttpRequest.newBuilder(
@@ -104,6 +119,19 @@ public class SubredditStaticContentIngestor {
     }
 
     public static String IngestSnapshotImage(Connection conn, MinioClient minioClient, SubredditPost post) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+        /**
+         * Given a subreddit post object method opens a Selenium browser window and naviagates to the display page of the reddit point.
+         * It takes a snapshot of the current state of the page through Selenium, uploads that screenshot png into blob storage and
+         * updates the metadata db record of the post to contain the full static file path to the newly uploaded png.
+         * 
+         * @param conn The postgres database connection for the metadata table.
+         * @param minioClient The client used to connect to blob storage
+         * @param post The subreddit post object that represents the reddit post that the screenshot will be taken from. For this 
+         *             function to work it is assumed that the subreddit post object has already been inserted into the database 
+         *              (there is a db record with this post id) and that it has a url parameter.
+         * 
+         * @return String The filepath to the screenshot png blob.
+         */
 
         WebDriver driver = new ChromeDriver();
 
