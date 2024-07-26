@@ -111,6 +111,14 @@
         <version>5.22.0</version>
       </dependency>
 
+      <dependency>
+        <groupId>com.reddit.label</groupId>
+        <artifactId>environment-config</artifactId>
+        <version>1.0-SNAPSHOT</version>
+      </dependency>
+ 
+
+
   </dependencies>
   
 </project>

@@ -5,7 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class Neo4jProdEnvironmentProperties {
+public class Neo4jProdEnvironmentProperties implements Neo4jEnvironment {
     public void loadEnvironmentVariablesFromFile(String pathtoFile) throws IOException {
         File file = new File(pathtoFile);
 

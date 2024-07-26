@@ -76,6 +76,11 @@
       <version>1.0-SNAPSHOT</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.reddit.label</groupId>
+      <artifactId>environment-config</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
 
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>

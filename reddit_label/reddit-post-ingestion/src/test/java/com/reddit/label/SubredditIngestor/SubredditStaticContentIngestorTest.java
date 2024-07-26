@@ -15,11 +15,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.reddit.label.BlobStorage.BlobStorageConfig;
-import com.reddit.label.BlobStorage.MinioClientConfig;
-import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
+import com.reddit.label.minio.connections.MinioHttpConnector;
+import com.reddit.label.minio.environments.MinioTestEnvironmentProperties;
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
 
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
@@ -35,8 +36,14 @@ public class SubredditStaticContentIngestorTest {
     private Connection conn;
 
     @BeforeEach
-    void setUp() throws SQLException {
-        conn = DB.connectTestDB();
+    void setUp() throws SQLException, IOException {
+
+
+        PostgresTestEnvironmentProperties psqlEnvironment = new PostgresTestEnvironmentProperties();
+        psqlEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(psqlEnvironment);
+        conn = psqlConnector.getConnection();
 
         SubredditTablesDB.createSubredditTables(conn);
 
@@ -76,7 +83,13 @@ public class SubredditStaticContentIngestorTest {
         SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "example_json_id");
         assertEquals("example_json_id", postFromDB.getId());
         
-        MinioClient testClient = MinioClientConfig.geTestMinioClient();
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+        
+        MinioClient testClient = minioConnector.getClient();
+
         String staticFileJsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, postFromDB);
         System.out.println(staticFileJsonPath);
         assertEquals("example_json_id/post.json", staticFileJsonPath);
@@ -115,11 +128,13 @@ public class SubredditStaticContentIngestorTest {
 
         SubredditPost postFromDB = SubredditTablesDB.getPost(conn, "example_screenshot_id");
         assertEquals("example_screenshot_id", postFromDB.getId());
-        
-        MinioClient testClient = MinioClient.builder()
-            .endpoint(BlobStorageConfig.getMinioTestEndpoint(), 9000, false)
-            .credentials(BlobStorageConfig.getMinioTestUserId(), BlobStorageConfig.getMinioTestAccesskey())
-            .build();
+
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+ 
+        MinioClient testClient = minioConnector.getClient();
 
         String staticFileScreenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, postFromDB);
         System.out.println(staticFileScreenshotPath);

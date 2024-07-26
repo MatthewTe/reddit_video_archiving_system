@@ -26,12 +26,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.reddit.label.RedditContentPostType;
 import com.reddit.label.RedditJsonParserResponse;
 import com.reddit.label.RedditPostJsonDefaultAttributes;
-import com.reddit.label.BlobStorage.MinioClientConfig;
-import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.Parsers.RedditJsonParser;
 import com.reddit.label.SubredditIngestor.SubredditStaticContentIngestor;
+import com.reddit.label.minio.connections.MinioHttpConnector;
+import com.reddit.label.minio.environments.MinioTestEnvironmentProperties;
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
 
 import io.minio.GetObjectArgs;
 import io.minio.ListObjectsArgs;
@@ -50,8 +52,13 @@ public class RedditHostedVideoIngestorTest {
     Connection conn;
 
     @BeforeEach
-    void setUp() throws SQLException {
-        conn = DB.connectTestDB();
+    void setUp() throws SQLException, IOException {
+
+        PostgresTestEnvironmentProperties psqlEnvironment = new PostgresTestEnvironmentProperties();
+        psqlEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(psqlEnvironment);
+        conn = psqlConnector.getConnection();
 
         SubredditTablesDB.createSubredditTables(conn);
 
@@ -91,7 +98,13 @@ public class RedditHostedVideoIngestorTest {
         assertEquals(insertedSubredditPostResult, 1);
 
         // Download the JSON:
-        MinioClient testClient = MinioClientConfig.geTestMinioClient();
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+
+        MinioClient testClient = minioConnector.getClient();
+
         String jsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, examplePostWHostedVideo);
         assertEquals("example_hosted_video_id/post.json", jsonPath);
 
@@ -199,7 +212,13 @@ public class RedditHostedVideoIngestorTest {
         assertEquals(insertedSubredditPostResult, 1);
 
         // Download the JSON:
-        MinioClient testClient = MinioClientConfig.geTestMinioClient();
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+
+        MinioClient testClient = minioConnector.getClient();
+
         String jsonPath = SubredditStaticContentIngestor.IngestJSONContent(conn, testClient, examplePostWPicture);
         assertEquals("example_hosted_pic_id/post.json", jsonPath);
 

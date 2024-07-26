@@ -16,12 +16,14 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 
-import com.reddit.label.BlobStorage.MinioClientConfig;
-import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.Parsers.RedditJsonParser;
 import com.reddit.label.StaticFileIngestors.RedditHostedVideoIngestor;
 import com.reddit.label.SubredditIngestor.SubredditStaticContentIngestor;
+import com.reddit.label.minio.connections.MinioHttpConnector;
+import com.reddit.label.minio.environments.MinioProdEnvironmentProperties;
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresProdEnvironmentProperties;
 import com.reddit.label.Databases.SubredditPost;
 
 import io.minio.GetObjectArgs;
@@ -50,17 +52,20 @@ public class Main
 
         Options options = new Options();
         options.addOption("r", "runs", true, "The total number of runs to run the ingestor for");
+        options.addOption("e", "env-file", true, "Pointing to a path to a production environment file that will be used to run the ingestor");
         options.addOption("b", "batch_size", true, "The number of reddit posts to run through each batch");
 
         int numRuns;
         int batchSize;
-        
+        String envFilePath;
+
         CommandLineParser parser = new DefaultParser();
         try {
 
             CommandLine cmd = parser.parse(options, args);
             numRuns = Integer.parseInt(cmd.getOptionValue("runs"));
             batchSize = Integer.parseInt(cmd.getOptionValue("batch_size"));
+            envFilePath = cmd.getOptionValue("env-file");
 
         } catch (ParseException e) {
             System.err.println("Error with parsing command line" + e.getMessage());
@@ -68,9 +73,19 @@ public class Main
             return;
         }
 
+        PostgresProdEnvironmentProperties postgresEnvironment = new PostgresProdEnvironmentProperties();
+        postgresEnvironment.loadEnvironmentVariablesFromFile(envFilePath);
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(postgresEnvironment);
 
-        Connection conn = DB.connect();
-        MinioClient minioClient = MinioClientConfig.getMinioClient();
+        Connection conn = psqlConnector.getConnection();
+
+        MinioProdEnvironmentProperties minioEnvironment = new MinioProdEnvironmentProperties();
+        minioEnvironment.loadEnvironmentVariablesFromFile(envFilePath);
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironment);
+
+        MinioClient minioClient = minioConnector.getClient();
 
         while (numRuns > 0) {
             List<SubredditPost> postsToProcess = SubredditTablesDB.getPostsNoStatic(conn, batchSize);

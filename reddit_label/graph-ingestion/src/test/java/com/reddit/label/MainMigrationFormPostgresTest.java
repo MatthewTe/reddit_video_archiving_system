@@ -21,8 +21,6 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
 
-import com.reddit.label.BlobStorage.MinioClientConfig;
-import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.GraphIngestor.RedditPostGraphIngestionResponse;
@@ -30,6 +28,12 @@ import com.reddit.label.GraphIngestor.SubredditPostGraphIngestor;
 import com.reddit.label.Parsers.RedditJsonParser;
 import com.reddit.label.StaticFileIngestors.RedditHostedVideoIngestor;
 import com.reddit.label.SubredditIngestor.SubredditStaticContentIngestor;
+import com.reddit.label.minio.connections.MinioHttpConnector;
+import com.reddit.label.minio.environments.MinioTestEnvironmentProperties;
+import com.reddit.label.neo4j.connections.Neo4jConnector;
+import com.reddit.label.neo4j.environments.Neo4jTestEnvironmentProperties;
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
@@ -47,12 +51,27 @@ public class MainMigrationFormPostgresTest {
     private Connection conn;
 
     @BeforeEach
-    void setUp() throws SQLException {
+    void setUp() throws SQLException, IOException {
 
-        driver = DB.connectTestGraphB();
-        minioClient = MinioClientConfig.geTestMinioClient();        
-        conn = DB.connectTestDB();
-        System.out.println(conn);
+        Neo4jTestEnvironmentProperties neo4jEnvironment = new Neo4jTestEnvironmentProperties();
+        neo4jEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        Neo4jConnector neo4jConnector = new Neo4jConnector();
+        neo4jConnector.loadEnvironment(neo4jEnvironment);
+
+        driver = neo4jConnector.getDriver();
+
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+
+        minioClient = minioConnector.getClient();        
+        
+        PostgresTestEnvironmentProperties psqlEnvironment = new PostgresTestEnvironmentProperties();
+        psqlEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(psqlEnvironment);
+        conn = psqlConnector.getConnection();
 
         SubredditTablesDB.createSubredditTables(conn);
 
