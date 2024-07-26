@@ -15,8 +15,10 @@ import java.time.Duration;
 import java.util.Base64;
 
 import org.openqa.selenium.By;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.Keys;
 import org.openqa.selenium.OutputType;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -138,12 +140,25 @@ public class SubredditStaticContentIngestor {
         driver.get(post.getUrl());
 
         driver.manage().timeouts().implicitlyWait(Duration.ofMillis(3000));
+        
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        
+        WebElement shadowHost = driver.findElement(By.cssSelector("reddit-cookie-banner"));
+
+        JavascriptExecutor js = (JavascriptExecutor) driver;
+        SearchContext shadowRoot = (SearchContext) js.executeScript("return arguments[0].shadowRoot", shadowHost);
+        WebElement acceptCookieBtn = shadowRoot.findElement(By.cssSelector("button.w-full.button-small.button-primary"));
+        acceptCookieBtn.click();
 
         WebElement LoginButton = driver.findElement(By.id("login-button"));
         LoginButton.click();
 
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
-
+        
         String redditUsername = RedditConfig.getRedditUsername();
         String redditPassword = RedditConfig.getRedditPassword();
         WebElement loginUsernameInput = driver.findElement(By.id("login-username"));
@@ -165,7 +180,7 @@ public class SubredditStaticContentIngestor {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-
+        
         String encodedScreenshotImg = ((TakesScreenshot)driver).getScreenshotAs(OutputType.BASE64);
         byte[] screenshotBytes = Base64.getDecoder().decode(encodedScreenshotImg);
         ByteArrayInputStream screenshotByteStream = new ByteArrayInputStream(screenshotBytes);
