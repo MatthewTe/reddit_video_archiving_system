@@ -20,6 +20,15 @@ public class MPDFileParser {
     }
 
    public List<DashPeriod> getRedditVideoMPDHighestResoloutionPeriods() {
+        /**
+         * Method that parses the XML document to extract all of the necessary fields from an MPD file.
+         * It iterates through each period of the mpd file and extracts the audio and video components
+         * that are the highest resoloutions for taht period and appends it to a list. This is used to
+         * build the list of periods that are contained in the MPD file.
+         * 
+         * @returns List<DashPeriods> A list of objects that represent the id, audio and video url for that
+         *                            period
+         */
 
         System.out.println("Starting MPD XML parsing...");
 

@@ -1,0 +1,28 @@
+services:
+  postgres-main:
+    image: postgres:13
+    container_name: postgres-for-testing
+    env_file:
+      - infra-testing.env
+    ports:
+      - "5432:5432"
+    restart: always
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio-for-testing
+    env_file:
+      - infra-testing.env
+    ports:
+      - "9000:9000"    
+      - "9001:9001"
+    command: server /data --console-address ":9001"
+
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j-for-testing
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    env_file:
+      - infra-testing.env
