@@ -1,17 +1,16 @@
-package com.reddit.label.postgres.environments;
+package com.reddit.label.reddit.environment;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class PostgresDevEnvironmentProperties implements PostgresEnvironment {
+public class RedditProdEnvironmentProperties implements RedditEnvironment {
     
-    public void loadEnvironmentVariablesFromFile(String pathToEnvFile) throws IOException {
+    public void loadEnvironmentFromFile(String pathToFile) throws IOException {
 
-        File envFile = new File(pathToEnvFile);
-
-        BufferedReader reader = new BufferedReader(new FileReader(envFile));
+        File file = new File(pathToFile);
+        BufferedReader reader = new BufferedReader(new FileReader(file));
 
         String envLine;
 
@@ -19,7 +18,7 @@ public class PostgresDevEnvironmentProperties implements PostgresEnvironment {
 
             if (envLine.contains("=")) {
                 String[] envLineParts = envLine.split("=");
-                String name = String.format("db.%s", envLineParts[0]);
+                String name = String.format("reddit.%s", envLineParts[0]);
                 String value = envLineParts[1];
 
                 if ((System.getenv(name) != null)) {
@@ -33,25 +32,17 @@ public class PostgresDevEnvironmentProperties implements PostgresEnvironment {
             }
         }
 
-        reader.close();
+        reader.close();       
 
     }
 
     public String getUsername() {
-        return System.getProperty("db.POSTGRES_DEV_DB_USERNAME");
+        return System.getProperty("reddit.REDDIT_PROD_USERNAME");
     }
 
     public String getPassword() {
-        return System.getProperty("db.POSTGRES_DEV_DB_PASSWORD");
+        return System.getProperty("reddit.REDDIT_PROD_PASSWORD");
     }
-    public String getUrl() {
-        return System.getProperty("db.POSTGRES_DEV_DB_URL");
-    }
-    public String getPort() {
-        return System.getProperty("db.POSTGRES_DEV_DB_PORT");
-    }
-    public String getDatabase() {
-        return System.getProperty("db.POSTGRES_DEV_DB_DATABASE");
-    }
+
 
 }

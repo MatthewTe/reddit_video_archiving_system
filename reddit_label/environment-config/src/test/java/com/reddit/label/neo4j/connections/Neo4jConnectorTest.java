@@ -23,7 +23,7 @@ public class Neo4jConnectorTest {
         Neo4jConnector neo4jConnector = new Neo4jConnector();
         neo4jConnector.loadEnvironment(neo4jEnvironment);
 
-        assertEquals("neo4j://localhost:7474", neo4jConnector.getURI());
+        assertEquals("neo4j://localhost:7687", neo4jConnector.getURI());
 
     }
 

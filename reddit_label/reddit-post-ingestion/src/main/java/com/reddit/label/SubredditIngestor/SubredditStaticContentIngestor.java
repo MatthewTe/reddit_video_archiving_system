@@ -26,6 +26,7 @@ import org.openqa.selenium.chrome.ChromeDriver;
 
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
+import com.reddit.label.reddit.environment.RedditEnvironment;
 
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
@@ -120,7 +121,7 @@ public class SubredditStaticContentIngestor {
 
     }
 
-    public static String IngestSnapshotImage(Connection conn, MinioClient minioClient, SubredditPost post) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
+    public static String IngestSnapshotImage(Connection conn, MinioClient minioClient, SubredditPost post, RedditEnvironment redditEnvironment) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
         /**
          * Given a subreddit post object method opens a Selenium browser window and naviagates to the display page of the reddit point.
          * It takes a snapshot of the current state of the page through Selenium, uploads that screenshot png into blob storage and
@@ -142,7 +143,7 @@ public class SubredditStaticContentIngestor {
         driver.manage().timeouts().implicitlyWait(Duration.ofMillis(3000));
         
         try {
-            Thread.sleep(10000);
+            Thread.sleep(1000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -157,10 +158,10 @@ public class SubredditStaticContentIngestor {
         WebElement LoginButton = driver.findElement(By.id("login-button"));
         LoginButton.click();
 
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(1));
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         
-        String redditUsername = RedditConfig.getRedditUsername();
-        String redditPassword = RedditConfig.getRedditPassword();
+        String redditUsername = redditEnvironment.getUsername();
+        String redditPassword = redditEnvironment.getPassword();
         WebElement loginUsernameInput = driver.findElement(By.id("login-username"));
         WebElement loginPasswordInput = driver.findElement(By.id("login-password"));
 

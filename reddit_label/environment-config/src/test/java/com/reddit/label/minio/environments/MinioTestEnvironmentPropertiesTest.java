@@ -15,7 +15,7 @@ public class MinioTestEnvironmentPropertiesTest {
         minioEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
 
         assertEquals("localhost", minioEnvironment.getUrl());
-        assertEquals("9001", minioEnvironment.getPort());
+        assertEquals("9000", minioEnvironment.getPort());
         assertEquals("test_username", minioEnvironment.getUsername());
         assertEquals("test_password", minioEnvironment.getPassword());
         assertEquals("test_user_id", minioEnvironment.getUserId());

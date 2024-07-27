@@ -14,9 +14,9 @@ public class Neo4jTestEnvironmentPropertiesTest {
         neo4jEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
 
         assertEquals("localhost", neo4jEnvironment.getUrl());
-        assertEquals("7474", neo4jEnvironment.getPort());
+        assertEquals("7687", neo4jEnvironment.getPort());
         assertEquals("test_db_name", neo4jEnvironment.getDatabaseName());
-        assertEquals("test_username", neo4jEnvironment.getUsername());
+        assertEquals("neo4j", neo4jEnvironment.getUsername());
         assertEquals("test_password", neo4jEnvironment.getPassword());
 
     }

@@ -21,6 +21,7 @@ import com.reddit.label.minio.connections.MinioHttpConnector;
 import com.reddit.label.minio.environments.MinioTestEnvironmentProperties;
 import com.reddit.label.postgres.connections.PostgresConnector;
 import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
+import com.reddit.label.reddit.environment.RedditTestEnvironmentProperties;
 
 import io.minio.MinioClient;
 import io.minio.RemoveObjectArgs;
@@ -136,7 +137,11 @@ public class SubredditStaticContentIngestorTest {
  
         MinioClient testClient = minioConnector.getClient();
 
-        String staticFileScreenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, postFromDB);
+
+        RedditTestEnvironmentProperties redditEnvironment = new RedditTestEnvironmentProperties();
+        redditEnvironment.loadEnvironmentFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test.env");
+
+        String staticFileScreenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, postFromDB, redditEnvironment);
         System.out.println(staticFileScreenshotPath);
         assertEquals("example_screenshot_id/screenshot.png", staticFileScreenshotPath);
 

@@ -34,6 +34,7 @@ import com.reddit.label.neo4j.connections.Neo4jConnector;
 import com.reddit.label.neo4j.environments.Neo4jTestEnvironmentProperties;
 import com.reddit.label.postgres.connections.PostgresConnector;
 import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
+import com.reddit.label.reddit.environment.RedditTestEnvironmentProperties;
 
 import io.minio.GetObjectArgs;
 import io.minio.MinioClient;
@@ -148,7 +149,9 @@ public class MainMigrationFormPostgresTest {
 
             if (post.getScreenshotPath() == null) {
                 System.out.printf("%s post has no screenshot. Taking screenshot\n", post.getId());
-                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, minioClient, post);
+                RedditTestEnvironmentProperties redditEnvironment = new RedditTestEnvironmentProperties();
+                redditEnvironment.loadEnvironmentFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test.env");
+                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, minioClient, post, redditEnvironment);
                 System.out.printf("Screenshot for %s post has been ingessted at %s \n", post.getId(), screenshotPath);
             }
 

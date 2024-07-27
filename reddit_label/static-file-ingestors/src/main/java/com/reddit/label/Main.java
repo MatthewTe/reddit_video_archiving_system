@@ -24,6 +24,7 @@ import com.reddit.label.minio.connections.MinioHttpConnector;
 import com.reddit.label.minio.environments.MinioProdEnvironmentProperties;
 import com.reddit.label.postgres.connections.PostgresConnector;
 import com.reddit.label.postgres.environments.PostgresProdEnvironmentProperties;
+import com.reddit.label.reddit.environment.RedditProdEnvironmentProperties;
 import com.reddit.label.Databases.SubredditPost;
 
 import io.minio.GetObjectArgs;
@@ -108,7 +109,11 @@ public class Main
 
                 if (post.getScreenshotPath() == null) {
                     System.out.printf("%s post has no screenshot. Taking screenshot\n", post.getId());
-                    String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, minioClient, post);
+
+                    RedditProdEnvironmentProperties redditEnvironment = new RedditProdEnvironmentProperties();
+                    redditEnvironment.loadEnvironmentFromFile(envFilePath);
+    
+                    String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, minioClient, post, redditEnvironment);
                     System.out.printf("Screenshot for %s post has been ingessted at %s \n", post.getId(), screenshotPath);
                 }
 
