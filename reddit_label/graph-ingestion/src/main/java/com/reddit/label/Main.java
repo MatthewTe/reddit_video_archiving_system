@@ -12,6 +12,7 @@ import org.neo4j.driver.Driver;
 
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
+import com.reddit.label.GraphIngestor.LoopTTArticleGraphIngestor;
 import com.reddit.label.GraphIngestor.RedditPostGraphIngestionResponse;
 import com.reddit.label.GraphIngestor.SubredditPostGraphIngestor;
 import com.reddit.label.minio.connections.MinioHttpConnector;
@@ -97,6 +98,9 @@ public class Main {
                 break;
 
             case "loop-tt-articles":
+                
+                LoopTTArticleGraphIngestor.MigrateLoopTTArticlesToGraphDB(conn, driver);
+
                 break;
             default:
                 throw new Exception(String.format("Migration type provided is not supported: %s", migrationType));
