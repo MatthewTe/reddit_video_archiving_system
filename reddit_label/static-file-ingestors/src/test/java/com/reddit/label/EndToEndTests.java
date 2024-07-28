@@ -22,13 +22,16 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.reddit.label.BlobStorage.MinioClientConfig;
-import com.reddit.label.Databases.DB;
 import com.reddit.label.Databases.SubredditPost;
 import com.reddit.label.Databases.SubredditTablesDB;
 import com.reddit.label.Parsers.RedditJsonParser;
 import com.reddit.label.StaticFileIngestors.RedditHostedVideoIngestor;
 import com.reddit.label.SubredditIngestor.SubredditStaticContentIngestor;
+import com.reddit.label.minio.connections.MinioHttpConnector;
+import com.reddit.label.minio.environments.MinioTestEnvironmentProperties;
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
+import com.reddit.label.reddit.environment.RedditTestEnvironmentProperties;
 
 import io.minio.GetObjectArgs;
 import io.minio.ListObjectsArgs;
@@ -48,7 +51,12 @@ public class EndToEndTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        conn = DB.connectTestDB();
+
+        PostgresTestEnvironmentProperties psqlEnvironment = new PostgresTestEnvironmentProperties();
+        psqlEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(psqlEnvironment);
+        conn = psqlConnector.getConnection();
 
         SubredditTablesDB.createSubredditTables(conn);
 
@@ -98,7 +106,13 @@ public class EndToEndTests {
         SubredditPost correctVideoPost = SubredditTablesDB.getPost(conn, "valid_hosted_video_post");
         postsToProcess.add(correctVideoPost);
 
-        MinioClient testClient = MinioClientConfig.geTestMinioClient();
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+
+        MinioClient testClient = minioConnector.getClient();
+
         for (SubredditPost post: postsToProcess) {
  
             System.out.println(post.getId());
@@ -138,7 +152,11 @@ public class EndToEndTests {
             // Testing Screenshot PNG file ingestion:
             if (post.getScreenshotPath() == null) {
                 System.out.printf("%s post has no screenshot. Taking screenshot\n", post.getId());
-                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, post);
+
+                RedditTestEnvironmentProperties redditEnvironment = new RedditTestEnvironmentProperties();
+                redditEnvironment.loadEnvironmentFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test.env");
+
+                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, post, redditEnvironment);
                 System.out.printf("Screenshot for %s post has been ingessted at %s \n", post.getId(), screenshotPath);
             }
 
@@ -265,7 +283,13 @@ public class EndToEndTests {
         SubredditPost picturePost = SubredditTablesDB.getPost(conn, "invalid_hosted_video_post");
         postsToProcess.add(picturePost);
 
-        MinioClient testClient = MinioClientConfig.geTestMinioClient();
+        MinioTestEnvironmentProperties minioEnvironent = new MinioTestEnvironmentProperties();
+        minioEnvironent.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");       
+        MinioHttpConnector minioConnector = new MinioHttpConnector();
+        minioConnector.loadEnvironment(minioEnvironent);
+
+        MinioClient testClient = minioConnector.getClient();
+
         for (SubredditPost post: postsToProcess) {
  
             System.out.println(post.getId());
@@ -305,7 +329,11 @@ public class EndToEndTests {
             // Testing Screenshot PNG file ingestion:
             if (post.getScreenshotPath() == null) {
                 System.out.printf("%s post has no screenshot. Taking screenshot\n", post.getId());
-                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, post);
+                
+                RedditTestEnvironmentProperties redditEnvironment = new RedditTestEnvironmentProperties();
+                redditEnvironment.loadEnvironmentFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test.env");
+
+                String screenshotPath = SubredditStaticContentIngestor.IngestSnapshotImage(conn, testClient, post, redditEnvironment);
                 System.out.printf("Screenshot for %s post has been ingessted at %s \n", post.getId(), screenshotPath);
             }
 

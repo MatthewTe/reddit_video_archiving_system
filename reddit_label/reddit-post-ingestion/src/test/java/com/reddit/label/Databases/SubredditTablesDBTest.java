@@ -2,6 +2,7 @@ package com.reddit.label.Databases;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -12,13 +13,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.reddit.label.postgres.connections.PostgresConnector;
+import com.reddit.label.postgres.environments.PostgresTestEnvironmentProperties;
+
 public class SubredditTablesDBTest {
 
     private Connection conn;
 
     @BeforeEach
-    void setUp() throws SQLException {
-        conn = DB.connectTestDB();
+    void setUp() throws SQLException, IOException {
+
+        PostgresTestEnvironmentProperties psqlEnvironment = new PostgresTestEnvironmentProperties();
+        psqlEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        PostgresConnector psqlConnector = new PostgresConnector();
+        psqlConnector.loadEnvironment(psqlEnvironment);
+        conn = psqlConnector.getConnection();
 
         SubredditTablesDB.createSubredditTables(conn);
 

@@ -7,16 +7,27 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.Query;
 import org.neo4j.driver.Session;
 
+import com.reddit.label.neo4j.connections.Neo4jConnector;
+import com.reddit.label.neo4j.environments.Neo4jTestEnvironmentProperties;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.driver.Values.parameters;
+
+import java.io.IOException;
 
 public class DBTest {
 
     private Driver driver;
 
     @BeforeEach
-    void setUp() {
-        driver = DB.connectTestGraphB();
+    void setUp() throws IOException {
+
+        Neo4jTestEnvironmentProperties neo4jEnvironment = new Neo4jTestEnvironmentProperties();
+        neo4jEnvironment.loadEnvironmentVariablesFromFile("/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/reddit_label/environment-config/src/main/resources/test_dev.env");
+        Neo4jConnector neo4jConnector = new Neo4jConnector();
+        neo4jConnector.loadEnvironment(neo4jEnvironment);
+
+        driver = neo4jConnector.getDriver();
     }
 
     @AfterEach

@@ -31,7 +31,16 @@ import io.minio.errors.XmlParserException;
 public class SubredditPostGraphIngestor {
 
     public static RedditPostGraphIngestionResponse IngestSubredditPostVideo(SubredditPost post, MinioClient minioClient,  Driver neo4jDriver) throws InvalidKeyException, ErrorResponseException, InsufficientDataException, InternalException, InvalidResponseException, NoSuchAlgorithmException, ServerException, XmlParserException, IllegalArgumentException, IOException {
-
+        /*
+         *  * Migrates subreddit posts from a PostgreSQL database to a Neo4j graph database.
+         * Downloads the post data from Minio, extracts relevant information, and creates nodes in Neo4j.
+         *
+         * @param post The subreddit post to be ingested.
+         * @param minioClient The Minio client used to download the JSON post data.
+         * @param neo4jDriver The Neo4j driver used to interact with the Neo4j graph database.
+         * @return RedditPostGraphIngestionResponse containing the ingested Reddit post ID, video node filepath, 
+         *         screenshot node path, and JSON node path, or null if the ingestion fails.
+         */
         StringBuilder content = new StringBuilder();
         // Download and Parse the JSON object to get the title and the other parameters:
         try (InputStream stream = minioClient.getObject(

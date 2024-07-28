@@ -28,3 +28,6 @@ replay_pid*
 */target
 *.properties
 *target
+
+*/test_env
+test.env
