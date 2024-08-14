@@ -32,3 +32,8 @@ replay_pid*
 */test_env
 test.env
 *.prod.env
+*.dev.env
+
+__pycache__
+*.sqlite
+*.csv
