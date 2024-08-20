@@ -4,7 +4,6 @@ from selenium.webdriver.remote.webelement import WebElement
 
 from data_writers.custom_types.search_results_types import SearchResultType
 
-
 from loguru import logger
 
 def determine_result_type(reslt_webelement_component: WebElement) -> SearchResultType:
@@ -21,7 +20,6 @@ def determine_result_type(reslt_webelement_component: WebElement) -> SearchResul
         logger.info(f"Not able to assign a direct type for url: {url}. Setting result type to basic link")
         return SearchResultType.BASIC_LINK
     
-
 def extract_published_date_from_result_elements(result_webelement_component: WebElement, result_type: SearchResultType) -> str:
     if result_type == SearchResultType.BASIC_LINK or result_type == SearchResultType.PDF_LINK:
         logger.info(f"Result type is a basic link or pdf like. Running published date extraction logic.")
@@ -42,4 +40,4 @@ def extract_additional_info_clickable_element(result_webelement_component: WebEl
         return additional_info_btn
     else:
         raise AttributeError(f"Result type not supported - not extracting an additional info button from web element. Current result type for element: {result_type}")
- 
+

@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
 from data_writers.custom_types.search_results_types import SearchQuery, SearchQueryResult
-from data_writers.html_parsers.google_search_parsers import (
+from python_poc.example_google_events_selenium.data_writers.html_parsers.google_search_parsers_selenium import (
     extract_published_date_from_result_elements, determine_result_type, 
     extract_additional_info_clickable_element
 )
