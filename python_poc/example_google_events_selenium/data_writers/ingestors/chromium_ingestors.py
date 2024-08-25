@@ -114,8 +114,12 @@ def ingest_search_results(
 
                 result_type: SearchResultType = determine_result_type(result)
 
-                url = result.find_element(By.TAG_NAME, "a").get_attribute("href")
-                title = result.find_element(By.TAG_NAME, "h3").text
+                try:
+                    url = result.find_element(By.TAG_NAME, "a").get_attribute("href")
+                    title = result.find_element(By.TAG_NAME, "h3").text
+                except:
+                    logger.warning(f"Unable to find the Url or Title for result component. Skipping processing this result component")
+                    continue
 
                 published_date_text = extract_published_date_from_result_elements(result, result_type=result_type)
 
@@ -129,15 +133,21 @@ def ingest_search_results(
                 
                 driver.implicitly_wait(2)
 
-                full_page_html = driver.page_source
+                # Getting side component I-frame:
+                modal_components: list = driver.find_elements(By.XPATH, "/html/body/div[6]/div/div/div/div/div/div/c-wiz/div/div[2]/div[2]/div/div[2]/c-wiz/div/c-wiz/c-wiz/c-wiz/c-wiz[4]/div/iframe")
+                if len(modal_components) == 0:
+                    logger.warning("additional_info_component is set to None. No modal found, setting to empty string.")
+                    additional_info_component = ""
+                else:
+                    # Switching Iframe to the side modal:
+                    driver.switch_to.frame(modal_components[0])
 
-                # Getting side component:
-                soup = BeautifulSoup(full_page_html)
+                    # TODO: Implement a logic to just get the html content not the full page source if size constraints become an issue:
+                    additional_info_components_from_iframe = driver.page_source
 
-                additional_info_component = soup.find("div", id="Sva75c")
-                if additional_info_component is None:
-                    logger.warning(f"additional_info_component is set to None. No modal found, setting to empty string.")
-                    additional_info_component = ""                   
+                    driver.switch_to.default_content()
+                    
+                    additional_info_component = additional_info_components_from_iframe
 
                 driver.implicitly_wait(2)
                 

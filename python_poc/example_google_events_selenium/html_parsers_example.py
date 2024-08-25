@@ -10,5 +10,8 @@ path_to_pdf_link_html_component = "/Users/matthewteelucksingh/Repos/java_webpage
 if __name__ == '__main__':
 
     df = get_search_results('"North Korea"')
-    df['extracted_date'] = df['result_html'].apply(lambda x: extract_published_date_from_result_component_html(result_html_component=x, result_type=SearchResultType.BASIC_LINK))
-    print(df[['extracted_date', 'result_html']])
+    for index, row in df.iterrows():
+        with open(f"/Users/matthewteelucksingh/Repos/java_webpage_content_extractor_POC/python_poc/example_google_events_selenium/testing_data/opened_modal_html_components/{row['search_result_id']}.html", "w") as f:
+            f.write(row['modal_html'])
+    #df['extracted_date'] = df['result_html'].apply(lambda x: extract_published_date_from_result_component_html(result_html_component=x, result_type=SearchResultType.BASIC_LINK))
+    #print(df[['extracted_date', 'result_html']])
