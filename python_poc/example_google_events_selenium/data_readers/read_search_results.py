@@ -16,6 +16,7 @@ def get_search_results(search_query: str) -> pd.DataFrame:
                 results.published_date AS published_date,
                 query.full_query AS full_query_text,
                 query.runtime AS query_runtime,
+                results.result_html AS result_html,
                 results.modal AS modal_html
             FROM search_results AS results
             JOIN search_results_LUT AS LUT

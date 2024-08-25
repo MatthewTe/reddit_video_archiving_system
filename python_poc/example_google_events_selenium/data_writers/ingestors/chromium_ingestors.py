@@ -12,7 +12,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 
 from data_writers.custom_types.search_results_types import SearchQuery, SearchQueryResult
-from python_poc.example_google_events_selenium.data_writers.html_parsers.google_search_parsers_selenium import (
+from data_writers.html_parsers.google_search_parsers_selenium import (
     extract_published_date_from_result_elements, determine_result_type, 
     extract_additional_info_clickable_element
 )
@@ -139,10 +139,12 @@ def ingest_search_results(
                     logger.warning(f"additional_info_component is set to None. No modal found, setting to empty string.")
                     additional_info_component = ""                   
 
-                driver.implicitly_wait(1)
+                driver.implicitly_wait(2)
                 
                 url_hash = str(uuid.uuid3(uuid.NAMESPACE_URL, url))
                 result_html = result.get_attribute("outerHTML")
+
+                driver.implicitly_wait(2)
 
                 search_query_result_insertion_dict: SearchQueryResult = {
                     "id": url_hash,

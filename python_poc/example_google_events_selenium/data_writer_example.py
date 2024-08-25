@@ -17,7 +17,6 @@ if __name__ == '__main__':
 
     driver = webdriver.Chrome()
 
-    '''
     ingest_search_results(
         search_query='"North Korea"',
         driver=driver,
@@ -39,3 +38,4 @@ if __name__ == '__main__':
             insert_search_result_func=insert_sqlite_search_query_result
         )
     
+    '''
