@@ -37,3 +37,5 @@ test.env
 __pycache__
 *.sqlite
 *.csv
+
+*/google_earth_places_selenium

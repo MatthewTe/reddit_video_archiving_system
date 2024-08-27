@@ -18,7 +18,6 @@ def determine_result_type(url: str) -> SearchResultType:
         logger.info(f"Not able to assign a direct type for url: {url}. Setting result type to basic link")
         return SearchResultType.BASIC_LINK
 
-#TODO: Write this:
 def extract_published_date_from_result_component_html(result_html_component: str, result_type: SearchResultType, **kwargs) -> datetime | None:
 
     soup = BeautifulSoup(result_html_component)
