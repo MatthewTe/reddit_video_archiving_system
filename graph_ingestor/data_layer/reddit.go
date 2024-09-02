@@ -44,50 +44,27 @@ func InsertRedditPost(newRedditPost RedditPost, env Neo4JEnvironment, ctx contex
 		func(tx neo4j.ManagedTransaction) (any, error) {
 
 			// 1) Check to see if the subreddit node already exist, if not create it.
+			// 2) Check to see if the static downloaded node has been created. If not create it.
+			// 3) Check to see if the date node (day) has been created. If not create it.
+			// 4) Check to see if the static file type associated w/ the post exists. If not, create.
 			_, err := tx.Run(
 				ctx,
-				"MERGE (subreddit:Subreddit:Entity {name: $subreddit_name})",
+				`MERGE (subreddit:Subreddit:Entity {name: $subreddit_name})
+				 MERGE (static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag {downloaded: $flag})
+				 MERGE (date:Date {day: date($day)})
+				 MERGE (static_file_type:StaticFileType:StaticFile:Settings {type: $static_file_type})
+				`,
 				map[string]any{
-					"subreddit_name": newRedditPost.Subreddit,
-				})
-			if err != nil {
-				return nil, err
-			}
-
-			// 2) Check to see if the static downloaded node has been created. If not create it.
-			_, err = tx.Run(
-				ctx,
-				"MERGE (static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag {downloaded: $flag})",
-				map[string]any{
-					"flag": true,
-				})
-			if err != nil {
-				return nil, err
-			}
-
-			// 3) Check to see if the date node (day) has been created. If not create it.
-			_, err = tx.Run(
-				ctx,
-				"MERGE (date:Date {day: date($day)})",
-				map[string]any{
-					"day": newRedditPost.CreatedDate.Format("2006-01-02"),
-				})
-			if err != nil {
-				return nil, err
-			}
-
-			// 4) Check to see if the static file type associated w/ the post exists. If not, create.
-			_, err = tx.Run(
-				ctx,
-				"MERGE (static_file_type:StaticFileType:StaticFile:Settings {type: $static_file_type})",
-				map[string]any{
+					"subreddit_name":   newRedditPost.Subreddit,
+					"flag":             true,
+					"day":              newRedditPost.CreatedDate.Format("2006-01-02"),
 					"static_file_type": newRedditPost.StaticFileType,
 				})
 			if err != nil {
 				return nil, err
 			}
-			// -- At this point all the supporting nodes have been created, but no associations.
 
+			// -- At this point all the supporting nodes have been created, but no associations.
 			// 5) Create the Reddit Post node w/ key field {id, url, static_root_url}
 			redditPostCreationResult, err := tx.Run(
 				ctx,
@@ -231,8 +208,8 @@ func InsertRedditPost(newRedditPost RedditPost, env Neo4JEnvironment, ctx contex
 					(post)-->(video:Reddit:StaticFile:Video),
     				(post)-->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag)
 				WHERE
-					static_downloaded_setting = $flag
-				RETURN post, subreddit, published_date, static_file_type, screenshot, json, video
+					static_downloaded_setting.downloaded = $flag
+				RETURN post, subreddit, published_date, screenshot, json, video
 				`,
 				map[string]any{
 					"post_id": createdRedditPostId,
