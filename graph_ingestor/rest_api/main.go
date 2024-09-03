@@ -2,15 +2,17 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	datalayer "github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer"
+	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer/config"
+	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer/reddit"
 )
 
 func main() {
 
-	testRedditPost := datalayer.RedditPost{
-		Id:               "test_id",
+	testRedditPost := reddit.RedditPost{
+		Id:               "test_id_two",
 		Subreddit:        "test_subreddit",
 		Url:              "test_url",
 		Title:            "test_tile",
@@ -22,13 +24,25 @@ func main() {
 		StaticFileType:   "hosted:video",
 	}
 
-	testEnvironment := datalayer.Neo4JEnvironment{
+	testEnvironment := config.Neo4JEnvironment{
 		URI:      "neo4j://localhost:7687",
 		User:     "neo4j",
 		Password: "test_password",
 	}
 
 	ctx := context.Background()
-	datalayer.InsertRedditPost(testRedditPost, testEnvironment, ctx)
+
+	insertedRedditResponse, err := reddit.InsertRedditPost(testRedditPost, testEnvironment, ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	staticPostFileResult, err := reddit.AppendRawRedditPostStaticFiles(testRedditPost, testEnvironment, ctx)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	fmt.Println(insertedRedditResponse)
+	fmt.Println(staticPostFileResult)
 
 }
