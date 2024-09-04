@@ -2,6 +2,8 @@ title: Just the Docs Template
 description: A starter template for a Jeykll site using the Just the Docs theme!
 
 base_url: /docs
+search_enabled: true
+search.heading_level: 2
 
 aux_links:
   Template Repository: https://github.com/just-the-docs/just-the-docs-template

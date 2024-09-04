@@ -2,7 +2,16 @@
 title: Home
 layout: home
 ---
+# Search
+{: .no_toc }
 
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
 # Data Pipelines
 This project contains all of the data pipelines that I am using for my various personal projects that I think should be clustered together in a single repo. Right now it is in the heavy proof-of-concept/exploratory phase. As the project matures so will the documentation.
 
