@@ -12,6 +12,7 @@ type RawRedditPost struct {
 	StaticRootUrl    string
 	StaticFileType   string
 }
+
 type RedditPost struct {
 	Id               string
 	Subreddit        string
@@ -35,5 +36,12 @@ type RedditPostStaticFileResult struct {
 	JsonPost              string
 }
 
-type RedditUser struct{}
-type RedditComment struct{}
+type RedditUser struct {
+	AuthorName     string
+	AuthorFullName string
+}
+type RedditComment struct {
+	RedditPostId string
+	CommentId    string
+	Body         string
+}
