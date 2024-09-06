@@ -549,10 +549,3 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 
 	return result.existingRedditPost, result.createdComments, nil
 }
-
-func InsertRawArticle() {}
-
-func InsertSpatialIndexNode() {}
-func InsertDatetimeNode()     {}
-
-func InsertRawGoogleSearchResult() {}
