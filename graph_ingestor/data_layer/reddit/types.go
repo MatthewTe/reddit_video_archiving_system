@@ -26,6 +26,20 @@ type RedditPost struct {
 	StaticFileType   string
 }
 
+type RedditUser struct {
+	AuthorName     string
+	AuthorFullName string
+}
+
+type RedditComment struct {
+	RedditPostId    string
+	CommentId       string
+	Body            string
+	AssociatedUser  RedditUser
+	PostedTimestamp time.Time
+}
+
+// Result Wrapper objects
 type RedditPostStaticFileResult struct {
 	RedditPostId          string
 	StaticRootUrl         string
@@ -35,13 +49,7 @@ type RedditPostStaticFileResult struct {
 	Screenshot            string
 	JsonPost              string
 }
-
-type RedditUser struct {
-	AuthorName     string
-	AuthorFullName string
-}
-type RedditComment struct {
-	RedditPostId string
-	CommentId    string
-	Body         string
+type RedditCommentCreatedResult struct {
+	existingRedditPost RedditPost
+	createdComments    []RedditComment
 }

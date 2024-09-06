@@ -144,7 +144,6 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 	return redditPost.(RawRedditPost), err
 }
 
-// TODO: Add support to the data model and API to add posts and comments
 func AppendRawRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RedditPostStaticFileResult, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
@@ -372,7 +371,7 @@ func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, 
 	return createdRedditUser.(RedditUser), err
 }
 
-func AddRedditPostUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
+func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
 		neo4j.BasicAuth(env.User, env.Password, ""))
@@ -430,7 +429,6 @@ func AddRedditPostUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx c
 	}
 
 	return createdUser.(RedditUser), nil
-
 }
 
 func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditComment, env config.Neo4JEnvironment, ctx context.Context) (RedditPost, []RedditComment, error) {
@@ -449,14 +447,107 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 	}
 
 	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	session.ExecuteWrite(ctx,
+	commentResponse, err := session.ExecuteWrite(ctx,
 		func(tx neo4j.ManagedTransaction) (any, error) {
 
-			// TODO: Implement this
-			return nil, nil
+			// Get the redditPost from the database. If not exists, exit not create.
+			redditPostResult, err := tx.Run(
+				ctx,
+				"RETURN EXISTS((post:Reddit:Post:Entity {id: $id})) AS post_exists",
+				map[string]any{
+					"id": redditPost.Id,
+				})
+			if err != nil {
+				return nil, err
+			}
+			redditPostResponse, err := redditPostResult.Single(ctx)
+			if err != nil {
+				return nil, err
+			}
+			postExists := redditPostResponse.AsMap()["post_exists"].(bool)
+			if !postExists {
+				return nil, fmt.Errorf("reddit Post id: %s does not exist in the database. Unable to create and append posts", redditPost.Id)
+			}
 
+			var createdRedditComments []RedditComment
+			for _, comment := range redditComments {
+
+				commentCreationResult, err := tx.Run(
+					ctx,
+					`
+					MATCH
+						(post:Reddit:Post:Entity {id: $reddit_post_id})
+					MERGE 
+						(user:Reddit:User:Entity:Account {full_name: $author_full_name, name: $author_name}),
+						(date:Date {day: date($comment_posted_day)})
+					CREATE
+						(comment:Reddit:Entity:Comment {
+							reddit_post_id: $reddit_post_id,
+							id: $comment_id,
+							body: $comment_body,
+						}),
+						(comment)-[comment_user_conn:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(user),
+						(comment)-[:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(post),
+						(comment)-[:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(date)
+					RETURN
+						post.id AS reddit_post_id,
+						user.full_name AS author_full_name,
+						user.name AS author_name,
+						comment.id AS comment_id,
+						comment.body AS comment_body,
+						date.day AS posted_day,
+						comment_user_conn.timestamp AS comment_timestamp
+					`,
+					map[string]any{
+						"reddit_post_id":        redditPost.Id,
+						"author_full_name":      comment.AssociatedUser.AuthorFullName,
+						"author_name":           comment.AssociatedUser.AuthorName,
+						"comment_posted_day":    comment.PostedTimestamp.Format("2006-01-02"),
+						"comment_id":            comment.CommentId,
+						"comment_body":          comment.Body,
+						"full_posted_timestamp": comment.PostedTimestamp.Format("2006-01-02 15:04:05"),
+					})
+				if err != nil {
+					return nil, err
+				}
+
+				commentCreationResponse, err := commentCreationResult.Single(ctx)
+				if err != nil {
+					return nil, err
+				}
+				commentCreationResponseMap := commentCreationResponse.AsMap()
+
+				var createdCommentResponse RedditComment = RedditComment{
+					RedditPostId: commentCreationResponseMap["reddit_post_id"].(string),
+					CommentId:    commentCreationResponseMap["comment_id"].(string),
+					Body:         commentCreationResponseMap["comment_body"].(string),
+					AssociatedUser: RedditUser{
+						AuthorName:     commentCreationResponseMap["author_name"].(string),
+						AuthorFullName: commentCreationResponseMap["author_full_name"].(string),
+					},
+					PostedTimestamp: commentCreationResponseMap["comment_timestamp"].(time.Time),
+				}
+
+				createdRedditComments = append(createdRedditComments, createdCommentResponse)
+			}
+
+			var createdRedditCommentFields RedditCommentCreatedResult = RedditCommentCreatedResult{
+				existingRedditPost: redditPost,
+				createdComments:    createdRedditComments,
+			}
+
+			return createdRedditCommentFields, nil
 		})
 
+	if err != nil {
+		var emptyRedditUser RedditPost = RedditPost{}
+		var emptyRedditComments []RedditComment
+		return emptyRedditUser, emptyRedditComments, err
+	}
+
+	result := commentResponse.(RedditCommentCreatedResult)
+
+	return result.existingRedditPost, result.createdComments, nil
 }
 
 func InsertRawArticle() {}
