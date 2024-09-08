@@ -104,8 +104,46 @@
     </nav>
 </header>
 <main class="main"> 
-<div class="post-content"><h2 id="hello-world">Hello World<a hidden class="anchor" aria-hidden="true" href="#hello-world">#</a></h2>
+<div class="post-content"><h2 id="reddit-data-schema">Reddit Data Schema:<a hidden class="anchor" aria-hidden="true" href="#reddit-data-schema">#</a></h2>
+<h3 id="reddit-post">Reddit Post:<a hidden class="anchor" aria-hidden="true" href="#reddit-post">#</a></h3>
+<pre tabindex="0"><code>(post:Reddit:Post:Entity 
+    {
+        id: $id, 
+        url: $url, 
+        title: $title, 
+        static_root_url: $static_root_url,
+        published_date: $published_date
+    }
+)
+</code></pre><h3 id="subreddit">Subreddit:<a hidden class="anchor" aria-hidden="true" href="#subreddit">#</a></h3>
+<pre tabindex="0"><code>(subreddit:Subreddit:Entity {name: $subreddit_name})
+</code></pre><h3 id="static-files">Static Files<a hidden class="anchor" aria-hidden="true" href="#static-files">#</a></h3>
+<p>Reddit specific static file settings:</p>
+<pre tabindex="0"><code>(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag {downloaded: $downloaded_bool})
 
+(static_file_type:StaticFileType:StaticFile:Settings {type: $static_file_type})
+</code></pre><p>Actual static file content:</p>
+<pre tabindex="0"><code>(screenshot:Reddit:Screenshot:StaticFile:Image {path: $screenshot_path})
+
+(json:Reddit:Json:StaticFile {path: $json_path})
+
+(video:Reddit:StaticFile:Video {path: $mpd_filepath})
+</code></pre><h3 id="users">Users:<a hidden class="anchor" aria-hidden="true" href="#users">#</a></h3>
+<pre tabindex="0"><code>(user:Reddit:User:Entity:Account 
+    {
+        name: $author_name,
+        full_name: $author_full_name
+    }
+)
+</code></pre><h3 id="comments">Comments:<a hidden class="anchor" aria-hidden="true" href="#comments">#</a></h3>
+<pre tabindex="0"><code>(comment:Reddit:Entity:Comment 
+    {
+        reddit_post_id: $reddit_post_id,
+        id: $comment_id,
+        body: $comment_body
+    }
+)
+</code></pre>
 
 </div>
     </main>
