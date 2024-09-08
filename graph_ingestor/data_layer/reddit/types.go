@@ -3,16 +3,16 @@ package reddit
 import "time"
 
 type RedditPost struct {
-	Id               string
-	Subreddit        string
-	Url              string
-	Title            string
-	StaticDownloaded bool
-	Screenshot       string
-	JsonPost         string
-	CreatedDate      time.Time
-	StaticRootUrl    string
-	StaticFileType   string
+	Id               string    `json:"id"`
+	Subreddit        string    `json:"subreddit"`
+	Url              string    `json:"url"`
+	Title            string    `json:"title"`
+	StaticDownloaded bool      `json:"static_downloaded_flag"`
+	Screenshot       string    `json:"screenshot_path"`
+	JsonPost         string    `json:"json_path"`
+	CreatedDate      time.Time `json:"created_date"`
+	StaticRootUrl    string    `json:"static_root_url"`
+	StaticFileType   string    `json:"static_file_type"`
 }
 
 type RedditUser struct {
@@ -30,14 +30,14 @@ type RedditComment struct {
 
 // Result Wrapper objects
 type RawRedditPostResult struct {
-	Id               string
-	Subreddit        string
-	Url              string
-	Title            string
-	StaticDownloaded bool
-	CreatedDate      time.Time
-	StaticRootUrl    string
-	StaticFileType   string
+	Id               string    `json:"id"`
+	Subreddit        string    `json:"subreddit"`
+	Url              string    `json:"url"`
+	Title            string    `json:"title"`
+	StaticDownloaded bool      `json:"static_downloaded_flag"`
+	CreatedDate      time.Time `json:"created_date"`
+	StaticRootUrl    string    `json:"static_root_url"`
+	StaticFileType   string    `json:"static_file_type"`
 }
 type RedditPostStaticFileResult struct {
 	RedditPostId          string
