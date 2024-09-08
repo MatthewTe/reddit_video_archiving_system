@@ -2,17 +2,6 @@ package reddit
 
 import "time"
 
-type RawRedditPost struct {
-	Id               string
-	Subreddit        string
-	Url              string
-	Title            string
-	StaticDownloaded bool
-	CreatedDate      time.Time
-	StaticRootUrl    string
-	StaticFileType   string
-}
-
 type RedditPost struct {
 	Id               string
 	Subreddit        string
@@ -40,6 +29,16 @@ type RedditComment struct {
 }
 
 // Result Wrapper objects
+type RawRedditPostResult struct {
+	Id               string
+	Subreddit        string
+	Url              string
+	Title            string
+	StaticDownloaded bool
+	CreatedDate      time.Time
+	StaticRootUrl    string
+	StaticFileType   string
+}
 type RedditPostStaticFileResult struct {
 	RedditPostId          string
 	StaticRootUrl         string
@@ -50,6 +49,10 @@ type RedditPostStaticFileResult struct {
 	JsonPost              string
 }
 type RedditCommentCreatedResult struct {
-	existingRedditPost RedditPost
+	existingRedditPost RawRedditPostResult
 	createdComments    []RedditComment
+}
+type AttachedRedditUserResult struct {
+	ParentPost   RawRedditPostResult
+	AttachedUser RedditUser
 }

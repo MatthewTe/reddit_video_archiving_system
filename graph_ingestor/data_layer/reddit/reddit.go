@@ -11,7 +11,7 @@ import (
 )
 
 // Reddit Post
-func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RawRedditPost, error) {
+func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RawRedditPostResult, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -122,7 +122,7 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 
 			redditPostResultMap := createdRedditPostResult.AsMap()
 			createdDate := time.Time(redditPostResultMap["created_date"].(dbtype.Date))
-			createdRedditPost := RawRedditPost{
+			createdRedditPost := RawRedditPostResult{
 				Id:               redditPostResultMap["id"].(string),
 				Subreddit:        redditPostResultMap["subreddit_name"].(string),
 				Url:              redditPostResultMap["url"].(string),
@@ -137,14 +137,14 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 		})
 
 	if err != nil {
-		var emptyRawRedditPost RawRedditPost
+		var emptyRawRedditPost RawRedditPostResult
 		return emptyRawRedditPost, err
 	}
 
-	return redditPost.(RawRedditPost), err
+	return redditPost.(RawRedditPostResult), err
 }
 
-func AppendRawRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RedditPostStaticFileResult, error) {
+func AttachRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RedditPostStaticFileResult, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -168,7 +168,10 @@ func AppendRawRedditPostStaticFiles(existingRedditPost RedditPost, env config.Ne
 
 			postAlreadyProcessedResult, err := tx.Run(
 				ctx,
-				"RETURN EXISTS((:Reddit:Post:Entity {id: $id})-[:STATIC_DOWNLOAD_STATUS]->(:StaticFile:Settings:StaticDownloadedFlag {downloaded: true})) AS already_processed",
+				`
+				MATCH (post:Reddit:Post:Entity {id: $id})-[static_connection:STATIC_DOWNLOAD_STATUS]->(:StaticFile:Settings:StaticDownloadedFlag {downloaded: true})
+				RETURN count(static_connection) > 0 AS already_processed
+				`,
 				map[string]any{
 					"id": existingRedditPost.Id,
 				})
@@ -189,7 +192,7 @@ func AppendRawRedditPostStaticFiles(existingRedditPost RedditPost, env config.Ne
 				ctx,
 				`
 				MATCH 
-					(post:Reddit:Post:Entity {id: $id})-[onn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting_false:StaticFile:Settings:StaticDownloadedFlag {downloaded: false})
+					(post:Reddit:Post:Entity {id: $id})-[conn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting_false:StaticFile:Settings:StaticDownloadedFlag {downloaded: false})
 				CREATE 
 					(screenshot:Reddit:Screenshot:StaticFile:Image {path: $screenshot_path}),
 					(json:Reddit:Json:StaticFile {path: $json_path}),
@@ -283,7 +286,7 @@ func AppendRawRedditPostStaticFiles(existingRedditPost RedditPost, env config.Ne
 	return createdRedditPostStaticResult.(RedditPostStaticFileResult), nil
 }
 
-func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
+func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (AttachedRedditUserResult, error) {
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
 		neo4j.BasicAuth(env.User, env.Password, ""))
@@ -301,12 +304,15 @@ func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, 
 	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
 	defer session.Close(ctx)
 
-	createdRedditUser, err := session.ExecuteWrite(ctx,
+	attachedRedditUserResult, err := session.ExecuteWrite(ctx,
 		func(tx neo4j.ManagedTransaction) (any, error) {
 
 			redditPostExists, err := tx.Run(
 				ctx,
-				"RETURN EXISTS((post:Reddit:Post:Entity {id: $id})) AS reddit_post_exists",
+				`
+				MATCH (post:Reddit:Post:Entity {id: $id})
+				RETURN count(post) > 0 AS reddit_post_exists
+				`,
 				map[string]any{
 					"id": existingRedditPost.Id,
 				})
@@ -325,7 +331,10 @@ func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, 
 				ctx,
 				`
 				MATCH 
-					(post:Reddit:Post:Entity {id: $id})
+					(post:Reddit:Post:Entity {id: $id})-[conn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag),
+					(post)-[:PUBLISHED_ON]->(published_date:Date),
+					(post)-[:CONTAINS]->(static_file_type: StaticFileType:StaticFile:Settings),
+					(post)-[:EXTRACTED_FORM]->(subreddit:Subreddit:Entity)
 				MERGE
 					(user:Reddit:User:Entity:Account 
 						{
@@ -334,9 +343,16 @@ func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, 
 						}
 					)
 				MERGE	
-					(user)-[:POSTED {date: date($date)}]-->(post)
+					(user)-[:POSTED {date: date($date)}]->(post)
 				RETURN
-					post.id AS id,
+					post.id AS post_id,
+					subreddit.name AS post_subreddit,
+					post.url AS post_url,
+					post.title AS post_title,
+					static_downloaded_setting.downloaded AS post_static_downloaded,
+					published_date.day AS post_created_date,
+					post.static_root_url AS post_static_root_url,
+					static_file_type.type AS post_static_file_type,
 					user.name AS author_name,
 					user.full_name AS author_full_name
 				`,
@@ -356,19 +372,39 @@ func AppendRedditPostUser(existingRedditPost RedditPost, redditUser RedditUser, 
 			}
 			createdUserResultMap := createdRedditUserResult.AsMap()
 
+			fmt.Println(createdUserResultMap)
+
+			createdDate := time.Time(createdUserResultMap["post_created_date"].(dbtype.Date))
+			var attachedRedditPostResult RawRedditPostResult = RawRedditPostResult{
+				Id:               createdUserResultMap["post_id"].(string),
+				Subreddit:        createdUserResultMap["post_subreddit"].(string),
+				Url:              createdUserResultMap["post_url"].(string),
+				Title:            createdUserResultMap["post_title"].(string),
+				StaticDownloaded: createdUserResultMap["post_static_downloaded"].(bool),
+				CreatedDate:      createdDate,
+				StaticRootUrl:    createdUserResultMap["post_static_root_url"].(string),
+				StaticFileType:   createdUserResultMap["post_static_file_type"].(string),
+			}
+
 			var createdRedditUser RedditUser = RedditUser{
-				AuthorName:     createdUserResultMap["name"].(string),
+				AuthorName:     createdUserResultMap["author_name"].(string),
 				AuthorFullName: createdUserResultMap["author_full_name"].(string),
 			}
 
-			return createdRedditUser, nil
+			var attachedUserResult AttachedRedditUserResult = AttachedRedditUserResult{
+				ParentPost:   attachedRedditPostResult,
+				AttachedUser: createdRedditUser,
+			}
+
+			return attachedUserResult, nil
 		})
+
 	if err != nil {
-		var emptyCreatedUser RedditUser = RedditUser{}
-		return emptyCreatedUser, err
+		var emptyAttachedUserResult AttachedRedditUserResult = AttachedRedditUserResult{}
+		return emptyAttachedUserResult, err
 	}
 
-	return createdRedditUser.(RedditUser), err
+	return attachedRedditUserResult.(AttachedRedditUserResult), err
 }
 
 func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
@@ -431,7 +467,8 @@ func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx conte
 	return createdUser.(RedditUser), nil
 }
 
-func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditComment, env config.Neo4JEnvironment, ctx context.Context) (RedditPost, []RedditComment, error) {
+func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []RedditComment, env config.Neo4JEnvironment,
+	ctx context.Context) (RawRedditPostResult, []RedditComment, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -451,22 +488,72 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 		func(tx neo4j.ManagedTransaction) (any, error) {
 
 			// Get the redditPost from the database. If not exists, exit not create.
-			redditPostResult, err := tx.Run(
+			redditPostExistsResult, err := tx.Run(
 				ctx,
-				"RETURN EXISTS((post:Reddit:Post:Entity {id: $id})) AS post_exists",
+				`
+				MATCH (post:Reddit:Post:Entity {id: $id})
+				RETURN count(post) > 0 AS post_exists
+				`,
 				map[string]any{
 					"id": redditPost.Id,
 				})
 			if err != nil {
 				return nil, err
 			}
-			redditPostResponse, err := redditPostResult.Single(ctx)
+			redditPostExistsResponse, err := redditPostExistsResult.Single(ctx)
 			if err != nil {
 				return nil, err
 			}
-			postExists := redditPostResponse.AsMap()["post_exists"].(bool)
+			postExists := redditPostExistsResponse.AsMap()["post_exists"].(bool)
 			if !postExists {
 				return nil, fmt.Errorf("reddit Post id: %s does not exist in the database. Unable to create and append posts", redditPost.Id)
+			}
+
+			rawRedditPostResult, err := tx.Run(
+				ctx,
+				`
+				MATCH
+					(post:Reddit:Post:Entity {id: $reddit_post_id}),
+					(post)-[static_connection:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag),
+					(post)-[:PUBLISHED_ON]->(published_date:Date),
+				 	(post)-[:CONTAINS]->(static_file_type: StaticFileType:StaticFile:Settings),
+				 	(post)-[:EXTRACTED_FORM]->(subreddit:Subreddit:Entity)
+				RETURN
+					post.id AS post_id,
+					subreddit.name AS post_subreddit,
+					post.url AS post_url,
+					post.title AS post_title,
+					static_downloaded_setting.downloaded AS post_static_downloaded,
+					date(published_date.day) AS post_created_date,
+					post.static_root_url AS post_static_root_url,
+					static_file_type.type AS post_static_file_type
+				`,
+				map[string]any{
+					"reddit_post_id": redditPost.Id,
+				},
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			rawRedditPostResponse, err := rawRedditPostResult.Single(ctx)
+			if err != nil {
+				return nil, err
+			}
+
+			rawRedditPostResponseMap := rawRedditPostResponse.AsMap()
+			// TODO: Why is this published date non-existent, what has happened???
+			createdDate := time.Time(rawRedditPostResponseMap["post_created_date"].(dbtype.Date))
+			fmt.Println(createdDate)
+			var existingRedditPostResult RawRedditPostResult = RawRedditPostResult{
+				Id:               rawRedditPostResponseMap["post_id"].(string),
+				Subreddit:        rawRedditPostResponseMap["post_subreddit"].(string),
+				Url:              rawRedditPostResponseMap["post_url"].(string),
+				Title:            rawRedditPostResponseMap["post_title"].(string),
+				StaticDownloaded: rawRedditPostResponseMap["post_static_downloaded"].(bool),
+				CreatedDate:      createdDate,
+				StaticRootUrl:    rawRedditPostResponseMap["post_static_root_url"].(string),
+				StaticFileType:   rawRedditPostResponseMap["post_static_file_type"].(string),
 			}
 
 			var createdRedditComments []RedditComment
@@ -476,19 +563,21 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 					ctx,
 					`
 					MATCH
-						(post:Reddit:Post:Entity {id: $reddit_post_id})
-					MERGE 
-						(user:Reddit:User:Entity:Account {full_name: $author_full_name, name: $author_name}),
-						(date:Date {day: date($comment_posted_day)})
+						(post:Reddit:Post:Entity {id: $reddit_post_id}),
+						(post)-[:PUBLISHED_ON]->(published_date:Date),
+						(post)-[:CONTAINS]->(static_file_type: StaticFileType:StaticFile:Settings),
+						(post)-[:EXTRACTED_FORM]->(subreddit:Subreddit:Entity)
+					MERGE (user:Reddit:User:Entity:Account {full_name: $author_full_name, name: $author_name})
+					MERGE (date:Date {day: date($comment_posted_day)})
 					CREATE
 						(comment:Reddit:Entity:Comment {
 							reddit_post_id: $reddit_post_id,
 							id: $comment_id,
-							body: $comment_body,
+							body: $comment_body
 						}),
-						(comment)-[comment_user_conn:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(user),
-						(comment)-[:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(post),
-						(comment)-[:POSTED_ON {timestamp: date($full_posted_timestamp)}]->(date)
+						(comment)-[comment_user_conn:POSTED_BY {timestamp: datetime($full_posted_timestamp)}]->(user),
+						(comment)-[:COMMENT_ON {timestamp: datetime($full_posted_timestamp)}]->(post),
+						(comment)-[:POSTED_ON {timestamp: datetime($full_posted_timestamp)}]->(date)
 					RETURN
 						post.id AS reddit_post_id,
 						user.full_name AS author_full_name,
@@ -499,13 +588,13 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 						comment_user_conn.timestamp AS comment_timestamp
 					`,
 					map[string]any{
-						"reddit_post_id":        redditPost.Id,
+						"reddit_post_id":        existingRedditPostResult.Id,
 						"author_full_name":      comment.AssociatedUser.AuthorFullName,
 						"author_name":           comment.AssociatedUser.AuthorName,
 						"comment_posted_day":    comment.PostedTimestamp.Format("2006-01-02"),
 						"comment_id":            comment.CommentId,
 						"comment_body":          comment.Body,
-						"full_posted_timestamp": comment.PostedTimestamp.Format("2006-01-02 15:04:05"),
+						"full_posted_timestamp": comment.PostedTimestamp.Format("2006-01-02T15:04:05"),
 					})
 				if err != nil {
 					return nil, err
@@ -525,14 +614,14 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 						AuthorName:     commentCreationResponseMap["author_name"].(string),
 						AuthorFullName: commentCreationResponseMap["author_full_name"].(string),
 					},
-					PostedTimestamp: commentCreationResponseMap["comment_timestamp"].(time.Time),
+					PostedTimestamp: commentCreationResponseMap["comment_timestamp"].(time.Time).UTC(),
 				}
 
 				createdRedditComments = append(createdRedditComments, createdCommentResponse)
 			}
 
 			var createdRedditCommentFields RedditCommentCreatedResult = RedditCommentCreatedResult{
-				existingRedditPost: redditPost,
+				existingRedditPost: existingRedditPostResult,
 				createdComments:    createdRedditComments,
 			}
 
@@ -540,7 +629,7 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 		})
 
 	if err != nil {
-		var emptyRedditUser RedditPost = RedditPost{}
+		var emptyRedditUser RawRedditPostResult = RawRedditPostResult{}
 		var emptyRedditComments []RedditComment
 		return emptyRedditUser, emptyRedditComments, err
 	}

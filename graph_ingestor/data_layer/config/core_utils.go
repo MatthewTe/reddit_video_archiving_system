@@ -116,3 +116,32 @@ func InsertDatetimeNodes(Days []time.Time, env Neo4JEnvironment, ctx context.Con
 	return createdDateNodes.([]time.Time), nil
 
 }
+
+func FullyDeleteDatabase(env Neo4JEnvironment, ctx context.Context) (bool, error) {
+
+	driver, err := neo4j.NewDriverWithContext(
+		env.URI,
+		neo4j.BasicAuth(env.User, env.Password, ""))
+	if err != nil {
+		return false, err
+	}
+
+	defer driver.Close(ctx)
+
+	err = driver.VerifyConnectivity(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	_, err = neo4j.ExecuteQuery(ctx, driver,
+		"MATCH(n) DETACH DELETE n",
+		map[string]any{},
+		neo4j.EagerResultTransformer,
+		neo4j.ExecuteQueryWithDatabase("neo4j"))
+	if err != nil {
+		return false, err
+	}
+
+	return true, err
+
+}
