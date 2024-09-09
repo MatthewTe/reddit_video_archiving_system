@@ -4,9 +4,10 @@ import "net/http"
 
 func GenerateServerMux() *http.ServeMux {
 
-	mux := http.NewServeMux()
+	// ServerMux implements the http.Handler interface:
+	router := http.NewServeMux()
 
-	mux.HandleFunc("/v1/reddit/reddit_post", InsertRedditPost)
+	router.HandleFunc("POST /v1/reddit/reddit_post", InsertRedditPost)
 
-	return mux
+	return router
 }

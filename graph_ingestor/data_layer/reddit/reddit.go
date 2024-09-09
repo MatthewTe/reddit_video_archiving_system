@@ -286,6 +286,66 @@ func AttachRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4J
 	return createdRedditPostStaticResult.(RedditPostStaticFileResult), nil
 }
 
+func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
+	driver, err := neo4j.NewDriverWithContext(
+		env.URI,
+		neo4j.BasicAuth(env.User, env.Password, ""))
+	if err != nil {
+		panic(err)
+	}
+
+	defer driver.Close(ctx)
+
+	err = driver.VerifyConnectivity(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	createdUser, err := session.ExecuteWrite(ctx,
+		func(tx neo4j.ManagedTransaction) (any, error) {
+
+			createdRedditUserResult, err := tx.Run(
+				ctx,
+				`
+				MERGE 
+					(user:Reddit:User:Entity:Account { full_name: $author_full_name, name: $author_name })
+				RETURN
+					user.name AS authorName,
+					user.full_name AS author_full_name
+				`,
+				map[string]any{
+					"author_full_name": redditUser.AuthorFullName,
+					"author_name":      redditUser.AuthorName,
+				})
+			if err != nil {
+				return nil, err
+			}
+
+			createdRedditUserResponse, err := createdRedditUserResult.Single(ctx)
+			if err != nil {
+				return nil, err
+			}
+			createdRedditUserMap := createdRedditUserResponse.AsMap()
+
+			var newRedditUser RedditUser = RedditUser{
+				AuthorName:     createdRedditUserMap["author_name"].(string),
+				AuthorFullName: createdRedditUserMap["author_full_name"].(string),
+			}
+
+			return newRedditUser, nil
+		})
+
+	if err != nil {
+		var emptyRedditUser RedditUser
+		return emptyRedditUser, err
+	}
+
+	return createdUser.(RedditUser), nil
+}
+
 func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (AttachedRedditUserResult, error) {
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -405,66 +465,6 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 	}
 
 	return attachedRedditUserResult.(AttachedRedditUserResult), err
-}
-
-func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (RedditUser, error) {
-	driver, err := neo4j.NewDriverWithContext(
-		env.URI,
-		neo4j.BasicAuth(env.User, env.Password, ""))
-	if err != nil {
-		panic(err)
-	}
-
-	defer driver.Close(ctx)
-
-	err = driver.VerifyConnectivity(ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
-	defer session.Close(ctx)
-
-	createdUser, err := session.ExecuteWrite(ctx,
-		func(tx neo4j.ManagedTransaction) (any, error) {
-
-			createdRedditUserResult, err := tx.Run(
-				ctx,
-				`
-				MERGE 
-					(user:Reddit:User:Entity:Account { full_name: $author_full_name, name: $author_name })
-				RETURN
-					user.name AS authorName,
-					user.full_name AS author_full_name
-				`,
-				map[string]any{
-					"author_full_name": redditUser.AuthorFullName,
-					"author_name":      redditUser.AuthorName,
-				})
-			if err != nil {
-				return nil, err
-			}
-
-			createdRedditUserResponse, err := createdRedditUserResult.Single(ctx)
-			if err != nil {
-				return nil, err
-			}
-			createdRedditUserMap := createdRedditUserResponse.AsMap()
-
-			var newRedditUser RedditUser = RedditUser{
-				AuthorName:     createdRedditUserMap["author_name"].(string),
-				AuthorFullName: createdRedditUserMap["author_full_name"].(string),
-			}
-
-			return newRedditUser, nil
-		})
-
-	if err != nil {
-		var emptyRedditUser RedditUser
-		return emptyRedditUser, err
-	}
-
-	return createdUser.(RedditUser), nil
 }
 
 func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []RedditComment, env config.Neo4JEnvironment,

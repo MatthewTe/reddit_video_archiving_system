@@ -16,8 +16,8 @@ type RedditPost struct {
 }
 
 type RedditUser struct {
-	AuthorName     string
-	AuthorFullName string
+	AuthorName     string `json:"author_name"`
+	AuthorFullName string `json:"author_full_name"`
 }
 
 type RedditComment struct {
@@ -40,19 +40,19 @@ type RawRedditPostResult struct {
 	StaticFileType   string    `json:"static_file_type"`
 }
 type RedditPostStaticFileResult struct {
-	RedditPostId          string
-	StaticRootUrl         string
-	StaticFileType        string
-	SpecificStaticFileUrl string
-	StaticDownloaded      bool
-	Screenshot            string
-	JsonPost              string
+	RedditPostId          string `json:"reddit_post_id"`
+	StaticRootUrl         string `json:"static_root_url"`
+	StaticFileType        string `json:"static_file_type"`
+	SpecificStaticFileUrl string `json:"specific_static_file_url"`
+	StaticDownloaded      bool   `json:"static_downloaded_flag"`
+	Screenshot            string `json:"screenshot_path"`
+	JsonPost              string `json:"json_path"`
 }
 type RedditCommentCreatedResult struct {
 	existingRedditPost RawRedditPostResult
 	createdComments    []RedditComment
 }
 type AttachedRedditUserResult struct {
-	ParentPost   RawRedditPostResult
-	AttachedUser RedditUser
+	ParentPost   RawRedditPostResult `json:"parent_post"`
+	AttachedUser RedditUser          `json:"attached_user"`
 }

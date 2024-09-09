@@ -9,8 +9,17 @@ import (
 
 func main() {
 
-	ServeMux := GenerateServerMux()
-	err := http.ListenAndServe(":3333", ServeMux)
+	router := GenerateServerMux()
+
+	// Adding Middleware:
+	middleware := NewLoggerMiddleware(router)
+
+	server := http.Server{
+		Addr:    ":8080",
+		Handler: middleware,
+	}
+
+	err := server.ListenAndServe()
 
 	if errors.Is(err, http.ErrServerClosed) {
 		fmt.Printf("server closed\n")
