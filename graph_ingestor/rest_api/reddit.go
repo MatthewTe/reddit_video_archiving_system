@@ -10,7 +10,7 @@ import (
 	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer/reddit"
 )
 
-func InsertRedditPost(w http.ResponseWriter, r *http.Request) {
+func HandleInsertRedditPost(w http.ResponseWriter, r *http.Request) {
 
 	var redditPost reddit.RedditPost
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
@@ -47,7 +47,7 @@ func InsertRedditPost(w http.ResponseWriter, r *http.Request) {
 	w.Write(insertedRedditResponseData)
 }
 
-func AttachRedditPostStaticFiles(w http.ResponseWriter, r *http.Request) {
+func HandleAttachRedditPostStaticFiles(w http.ResponseWriter, r *http.Request) {
 
 	var redditPost reddit.RedditPost
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
@@ -81,7 +81,7 @@ func AttachRedditPostStaticFiles(w http.ResponseWriter, r *http.Request) {
 	w.Write(attachedStaticFileResultData)
 }
 
-func InsertRedditUser(w http.ResponseWriter, r *http.Request) {
+func HandleInsertRedditUser(w http.ResponseWriter, r *http.Request) {
 
 	var redditUser reddit.RedditUser
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
@@ -120,7 +120,7 @@ type AttachedRedditUserRequest struct {
 	AttachedUser reddit.RedditUser          `json:"attached_user"`
 }
 
-func AttachRedditUserToPost(w http.ResponseWriter, r *http.Request) {
+func HandleAttachRedditUserToPost(w http.ResponseWriter, r *http.Request) {
 	var attachedRedditUserRequest AttachedRedditUserRequest
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
 		URI:      "neo4j://localhost:7687",
@@ -159,7 +159,7 @@ type AppendRedditPostCommentsRequest struct {
 	RedditComments []reddit.RedditComment
 }
 
-func AppendRedditComments(w http.ResponseWriter, r *http.Request) {
+func HandleAppendRedditComments(w http.ResponseWriter, r *http.Request) {
 	var appendRedditPostCommentsInput AppendRedditPostCommentsRequest
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
 		URI:      "neo4j://localhost:7687",
@@ -197,5 +197,39 @@ func AppendRedditComments(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(appendRedditPostCommentData)
+}
 
+type RedditPostIds struct {
+	Ids []string `json:"post_ids"`
+}
+
+func HandleCheckRedditPostExists(w http.ResponseWriter, r *http.Request) {
+
+	var RedditPostsToCheck RedditPostIds
+	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
+		URI:      "neo4j://localhost:7687",
+		User:     "neo4j",
+		Password: "test_password",
+	}
+	var ctx context.Context = context.Background()
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&RedditPostsToCheck)
+	if err != nil {
+		http.Error(w, "error in unmarshaling json request", http.StatusBadRequest)
+	}
+
+	redditPostExistsResult, err := reddit.CheckRedditPostExists(RedditPostsToCheck.Ids, env, ctx)
+	if err != nil {
+		http.Error(w, "Error in checking if the reddit post exists: "+err.Error(), http.StatusBadRequest)
+	}
+
+	redditPostExistsData, err := json.Marshal(redditPostExistsResult)
+	if err != nil {
+		http.Error(w, "Error in marshaling JSON data for Reddit Post Exists response", http.StatusBadRequest)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(redditPostExistsData)
 }

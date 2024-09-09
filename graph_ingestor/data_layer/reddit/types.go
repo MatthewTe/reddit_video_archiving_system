@@ -56,3 +56,8 @@ type AttachedRedditUserResult struct {
 	ParentPost   RawRedditPostResult `json:"parent_post"`
 	AttachedUser RedditUser          `json:"attached_user"`
 }
+type RedditPostsExistsResult struct {
+	Id               string `json:"id"`
+	Exists           bool   `json:"post_exists"`
+	StaticDownloaded bool   `json:"static_downloaded_flag"`
+}

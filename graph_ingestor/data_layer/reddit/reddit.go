@@ -638,3 +638,67 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 
 	return result.existingRedditPost, result.createdComments, nil
 }
+
+func CheckRedditPostExists(redditPostIds []string, env config.Neo4JEnvironment, ctx context.Context) ([]RedditPostsExistsResult, error) {
+
+	driver, err := neo4j.NewDriverWithContext(
+		env.URI,
+		neo4j.BasicAuth(env.User, env.Password, ""))
+	if err != nil {
+		panic(err)
+	}
+	defer driver.Close(ctx)
+
+	err = driver.VerifyConnectivity(ctx)
+	if err != nil {
+		panic(err)
+	}
+
+	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	postExistsResults, err := session.ExecuteWrite(ctx,
+		func(tx neo4j.ManagedTransaction) (any, error) {
+
+			var posts []RedditPostsExistsResult
+			for _, postId := range redditPostIds {
+
+				postExistsResult, err := tx.Run(
+					ctx,
+					`
+					OPTIONAL MATCH (post:RedditPost {id: $id})-[:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag)
+					RETURN 
+						COALESCE(static_downloaded_setting.downloaded, false) AS static_downloaded_flag, 
+						post IS NOT NULL AS post_exists
+					`,
+					map[string]any{"id": postId},
+				)
+				if err != nil {
+					return nil, err
+				}
+
+				postExistsResponse, err := postExistsResult.Single(ctx)
+				if err != nil {
+					return nil, err
+				}
+				postExistsMap := postExistsResponse.AsMap()
+
+				var PostExistsResult RedditPostsExistsResult = RedditPostsExistsResult{
+					Id:               postId,
+					Exists:           postExistsMap["post_exists"].(bool),
+					StaticDownloaded: postExistsMap["static_downloaded_flag"].(bool),
+				}
+
+				posts = append(posts, PostExistsResult)
+			}
+
+			return posts, nil
+
+		})
+
+	if err != nil {
+		var emptyPostExistsResult []RedditPostsExistsResult
+		return emptyPostExistsResult, err
+	}
+
+	return postExistsResults.([]RedditPostsExistsResult), nil
+
+}
