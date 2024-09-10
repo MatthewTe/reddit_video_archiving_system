@@ -116,8 +116,8 @@ func HandleInsertRedditUser(w http.ResponseWriter, r *http.Request) {
 }
 
 type AttachedRedditUserRequest struct {
-	ParentPost   reddit.RawRedditPostResult `json:"parent_post"`
-	AttachedUser reddit.RedditUser          `json:"attached_user"`
+	ParentPost   reddit.RedditPost `json:"parent_post"`
+	AttachedUser reddit.RedditUser `json:"attached_user"`
 }
 
 func HandleAttachRedditUserToPost(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +155,7 @@ func HandleAttachRedditUserToPost(w http.ResponseWriter, r *http.Request) {
 }
 
 type AppendRedditPostCommentsRequest struct {
-	RedditPost     reddit.RawRedditPostResult
+	RedditPost     reddit.RedditPost
 	RedditComments []reddit.RedditComment
 }
 
@@ -174,7 +174,7 @@ func HandleAppendRedditComments(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error in unmarshaling json request", http.StatusBadRequest)
 	}
 
-	redditPostRawResult, RedditComments, err := reddit.ApppendRedditPostComments(
+	redditPostResult, RedditComments, err := reddit.ApppendRedditPostComments(
 		appendRedditPostCommentsInput.RedditPost,
 		appendRedditPostCommentsInput.RedditComments,
 		env,
@@ -185,7 +185,7 @@ func HandleAppendRedditComments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var AppendRedditPostCommentsResponse AppendRedditPostCommentsRequest = AppendRedditPostCommentsRequest{
-		RedditPost:     redditPostRawResult,
+		RedditPost:     redditPostResult,
 		RedditComments: RedditComments,
 	}
 
@@ -205,7 +205,6 @@ type RedditPostIds struct {
 
 func HandleCheckRedditPostExists(w http.ResponseWriter, r *http.Request) {
 
-	var RedditPostsToCheck RedditPostIds
 	var env config.Neo4JEnvironment = config.Neo4JEnvironment{
 		URI:      "neo4j://localhost:7687",
 		User:     "neo4j",
@@ -213,13 +212,8 @@ func HandleCheckRedditPostExists(w http.ResponseWriter, r *http.Request) {
 	}
 	var ctx context.Context = context.Background()
 
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&RedditPostsToCheck)
-	if err != nil {
-		http.Error(w, "error in unmarshaling json request", http.StatusBadRequest)
-	}
-
-	redditPostExistsResult, err := reddit.CheckRedditPostExists(RedditPostsToCheck.Ids, env, ctx)
+	idsToCheck := r.URL.Query()["reddit_post_ids"]
+	redditPostExistsResult, err := reddit.CheckRedditPostExists(idsToCheck, env, ctx)
 	if err != nil {
 		http.Error(w, "Error in checking if the reddit post exists: "+err.Error(), http.StatusBadRequest)
 	}

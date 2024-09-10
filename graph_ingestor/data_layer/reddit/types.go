@@ -29,16 +29,6 @@ type RedditComment struct {
 }
 
 // Result Wrapper objects
-type RawRedditPostResult struct {
-	Id               string    `json:"id"`
-	Subreddit        string    `json:"subreddit"`
-	Url              string    `json:"url"`
-	Title            string    `json:"title"`
-	StaticDownloaded bool      `json:"static_downloaded_flag"`
-	CreatedDate      time.Time `json:"created_date"`
-	StaticRootUrl    string    `json:"static_root_url"`
-	StaticFileType   string    `json:"static_file_type"`
-}
 type RedditPostStaticFileResult struct {
 	RedditPostId          string `json:"reddit_post_id"`
 	StaticRootUrl         string `json:"static_root_url"`
@@ -49,12 +39,12 @@ type RedditPostStaticFileResult struct {
 	JsonPost              string `json:"json_path"`
 }
 type RedditCommentCreatedResult struct {
-	existingRedditPost RawRedditPostResult
+	existingRedditPost RedditPost
 	createdComments    []RedditComment
 }
 type AttachedRedditUserResult struct {
-	ParentPost   RawRedditPostResult `json:"parent_post"`
-	AttachedUser RedditUser          `json:"attached_user"`
+	ParentPost   RedditPost `json:"parent_post"`
+	AttachedUser RedditUser `json:"attached_user"`
 }
 type RedditPostsExistsResult struct {
 	Id               string `json:"id"`

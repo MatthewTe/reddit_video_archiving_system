@@ -62,7 +62,7 @@ var exampleRedditComments []RedditComment = []RedditComment{
 }
 
 // Test Structs to confirm outputs from methods:
-var TestRawRedditOutput RawRedditPostResult = RawRedditPostResult{
+var TestRawRedditOutput RedditPost = RedditPost{
 	Id:               "example_reddit_id",
 	Subreddit:        "example_subreddit",
 	Url:              "https://example_url.com",
@@ -71,6 +71,8 @@ var TestRawRedditOutput RawRedditPostResult = RawRedditPostResult{
 	CreatedDate:      time.Date(2021, 8, 15, 14, 30, 45, 100, time.Local),
 	StaticRootUrl:    "example_reddit_id/",
 	StaticFileType:   "hosted:video",
+	Screenshot:       "example_reddit_id/screenshot.png",
+	JsonPost:         "example_reddit_id/post.json",
 }
 var TestRedditUserOutputs RedditUser = RedditUser{
 	AuthorName:     "test_authorname",

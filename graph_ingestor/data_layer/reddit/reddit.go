@@ -11,7 +11,8 @@ import (
 )
 
 // Reddit Post
-func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RawRedditPostResult, error) {
+// TODO: Change the reddit post insertion logic to attach a screenshot and json file
+func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RedditPost, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -87,6 +88,10 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 							published_date: $published_date
 						}
 					),
+					(screenshot:Reddit:Screenshot:StaticFile:Image {path: $screenshot_path}),
+					(json:Reddit:Json:StaticFile {path: $json_path}),
+					(post)-[:TAKEN {date: date($date)}]->(screenshot),
+					(post)-[:EXTRACTED {date: date($date)}]->(json),
 					(post)-[:EXTRACTED_FORM]->(subreddit), 
 					(post)-[:PUBLISHED_ON]->(published_date), 
 					(post)-[:CONTAINS]->(static_file_type),
@@ -99,17 +104,22 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 					static_downloaded_setting_false.downloaded AS static_downloaded,
 					published_date.day AS created_date,
 					static_file_type.type AS static_file_type,
-					post.static_root_url AS static_root_url
+					post.static_root_url AS static_root_url,
+					screenshot.screenshot_path AS screenshot_path,
+					json.json_path AS json_path
 				`,
 				map[string]any{
 					"subreddit_name":   newRedditPost.Subreddit,
 					"published_date":   newRedditPost.CreatedDate.Format("2006-01-02"),
+					"date":             newRedditPost.CreatedDate.Format("2006-01-02"),
 					"static_file_type": newRedditPost.StaticFileType,
 					"flag":             false,
 					"id":               newRedditPost.Id,
 					"url":              newRedditPost.Url,
 					"title":            newRedditPost.Title,
 					"static_root_url":  newRedditPost.StaticRootUrl,
+					"screenshot_path":  newRedditPost.Screenshot,
+					"json_path":        newRedditPost.JsonPost,
 				})
 			if err != nil {
 				return nil, err
@@ -122,7 +132,7 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 
 			redditPostResultMap := createdRedditPostResult.AsMap()
 			createdDate := time.Time(redditPostResultMap["created_date"].(dbtype.Date))
-			createdRedditPost := RawRedditPostResult{
+			createdRedditPost := RedditPost{
 				Id:               redditPostResultMap["id"].(string),
 				Subreddit:        redditPostResultMap["subreddit_name"].(string),
 				Url:              redditPostResultMap["url"].(string),
@@ -131,17 +141,19 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 				CreatedDate:      createdDate,
 				StaticRootUrl:    redditPostResultMap["static_root_url"].(string),
 				StaticFileType:   redditPostResultMap["static_file_type"].(string),
+				JsonPost:         redditPostResultMap["screenshot_path"].(string),
+				Screenshot:       redditPostResultMap["json_path"].(string),
 			}
 
 			return createdRedditPost, nil
 		})
 
 	if err != nil {
-		var emptyRawRedditPost RawRedditPostResult
-		return emptyRawRedditPost, err
+		var emptyRedditPost RedditPost
+		return emptyRedditPost, err
 	}
 
-	return redditPost.(RawRedditPostResult), err
+	return redditPost.(RedditPost), err
 }
 
 func AttachRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4JEnvironment, ctx context.Context) (RedditPostStaticFileResult, error) {
@@ -192,18 +204,15 @@ func AttachRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4J
 				ctx,
 				`
 				MATCH 
-					(post:Reddit:Post:Entity {id: $id})-[conn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting_false:StaticFile:Settings:StaticDownloadedFlag {downloaded: false})
-				CREATE 
-					(screenshot:Reddit:Screenshot:StaticFile:Image {path: $screenshot_path}),
-					(json:Reddit:Json:StaticFile {path: $json_path}),
-					(post)-[:TAKEN {date: date($date)}]->(screenshot),
-					(post)-[:EXTRACTED {date: date($date)}]->(json)
+					(post:Reddit:Post:Entity {id: $id})-[conn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting_false:StaticFile:Settings:StaticDownloadedFlag {downloaded: false}),
+					(post)-[:TAKEN]->(screenshot:Reddit:Screenshot:StaticFile:Image),
+					(post)-[:EXTRACTED]->(json:Reddit:Json:StaticFile) 
 				DELETE
 					conn_to_static_setting
 				RETURN
 					post.id AS id, 
 					screenshot.path AS screenshot_path,
-					json.path AS json_path
+					json.json_path AS json_path
 				`,
 				map[string]any{
 					"id":              existingRedditPost.Id,
@@ -346,7 +355,7 @@ func AddRedditUser(redditUser RedditUser, env config.Neo4JEnvironment, ctx conte
 	return createdUser.(RedditUser), nil
 }
 
-func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (AttachedRedditUserResult, error) {
+func AttachRedditUser(existingRedditPost RedditPost, redditUser RedditUser, env config.Neo4JEnvironment, ctx context.Context) (AttachedRedditUserResult, error) {
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
 		neo4j.BasicAuth(env.User, env.Password, ""))
@@ -392,6 +401,8 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 				`
 				MATCH 
 					(post:Reddit:Post:Entity {id: $id})-[conn_to_static_setting:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag),
+					(post)-[:TAKEN]->(screenshot:Reddit:Screenshot:StaticFile:Image),
+					(post)-[:EXTRACTED]->(json:Reddit:Json:StaticFile),
 					(post)-[:PUBLISHED_ON]->(published_date:Date),
 					(post)-[:CONTAINS]->(static_file_type: StaticFileType:StaticFile:Settings),
 					(post)-[:EXTRACTED_FORM]->(subreddit:Subreddit:Entity)
@@ -409,6 +420,8 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 					subreddit.name AS post_subreddit,
 					post.url AS post_url,
 					post.title AS post_title,
+					screenshot.screenshot_path AS post_screenshot_path,
+					json.json_path AS post_json_path,
 					static_downloaded_setting.downloaded AS post_static_downloaded,
 					published_date.day AS post_created_date,
 					post.static_root_url AS post_static_root_url,
@@ -435,7 +448,7 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 			fmt.Println(createdUserResultMap)
 
 			createdDate := time.Time(createdUserResultMap["post_created_date"].(dbtype.Date))
-			var attachedRedditPostResult RawRedditPostResult = RawRedditPostResult{
+			var attachedRedditPostResult RedditPost = RedditPost{
 				Id:               createdUserResultMap["post_id"].(string),
 				Subreddit:        createdUserResultMap["post_subreddit"].(string),
 				Url:              createdUserResultMap["post_url"].(string),
@@ -444,6 +457,8 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 				CreatedDate:      createdDate,
 				StaticRootUrl:    createdUserResultMap["post_static_root_url"].(string),
 				StaticFileType:   createdUserResultMap["post_static_file_type"].(string),
+				Screenshot:       createdUserResultMap["post_screenshot_path"].(string),
+				JsonPost:         createdUserResultMap["post_json_path"].(string),
 			}
 
 			var createdRedditUser RedditUser = RedditUser{
@@ -467,8 +482,8 @@ func AttachRedditUser(existingRedditPost RawRedditPostResult, redditUser RedditU
 	return attachedRedditUserResult.(AttachedRedditUserResult), err
 }
 
-func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []RedditComment, env config.Neo4JEnvironment,
-	ctx context.Context) (RawRedditPostResult, []RedditComment, error) {
+func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditComment, env config.Neo4JEnvironment,
+	ctx context.Context) (RedditPost, []RedditComment, error) {
 
 	driver, err := neo4j.NewDriverWithContext(
 		env.URI,
@@ -514,6 +529,8 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 				`
 				MATCH
 					(post:Reddit:Post:Entity {id: $reddit_post_id}),
+					(post)-[:TAKEN]->(screenshot:Reddit:Screenshot:StaticFile:Image),
+					(post)-[:EXTRACTED]->(json:Reddit:Json:StaticFile),
 					(post)-[static_connection:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag),
 					(post)-[:PUBLISHED_ON]->(published_date:Date),
 				 	(post)-[:CONTAINS]->(static_file_type: StaticFileType:StaticFile:Settings),
@@ -526,7 +543,9 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 					static_downloaded_setting.downloaded AS post_static_downloaded,
 					date(published_date.day) AS post_created_date,
 					post.static_root_url AS post_static_root_url,
-					static_file_type.type AS post_static_file_type
+					static_file_type.type AS post_static_file_type,
+					screenshot.screenshot_path AS screenshot_path,
+					json.json_path AS json_path
 				`,
 				map[string]any{
 					"reddit_post_id": redditPost.Id,
@@ -545,7 +564,7 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 			// TODO: Why is this published date non-existent, what has happened???
 			createdDate := time.Time(rawRedditPostResponseMap["post_created_date"].(dbtype.Date))
 			fmt.Println(createdDate)
-			var existingRedditPostResult RawRedditPostResult = RawRedditPostResult{
+			var existingRedditPostResult RedditPost = RedditPost{
 				Id:               rawRedditPostResponseMap["post_id"].(string),
 				Subreddit:        rawRedditPostResponseMap["post_subreddit"].(string),
 				Url:              rawRedditPostResponseMap["post_url"].(string),
@@ -554,6 +573,8 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 				CreatedDate:      createdDate,
 				StaticRootUrl:    rawRedditPostResponseMap["post_static_root_url"].(string),
 				StaticFileType:   rawRedditPostResponseMap["post_static_file_type"].(string),
+				Screenshot:       rawRedditPostResponseMap["screenshot_path"].(string),
+				JsonPost:         rawRedditPostResponseMap["json_path"].(string),
 			}
 
 			var createdRedditComments []RedditComment
@@ -629,9 +650,9 @@ func ApppendRedditPostComments(redditPost RawRedditPostResult, redditComments []
 		})
 
 	if err != nil {
-		var emptyRedditUser RawRedditPostResult = RawRedditPostResult{}
+		var emptyRedditPost RedditPost = RedditPost{}
 		var emptyRedditComments []RedditComment
-		return emptyRedditUser, emptyRedditComments, err
+		return emptyRedditPost, emptyRedditComments, err
 	}
 
 	result := commentResponse.(RedditCommentCreatedResult)
