@@ -105,8 +105,8 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 					published_date.day AS created_date,
 					static_file_type.type AS static_file_type,
 					post.static_root_url AS static_root_url,
-					screenshot.screenshot_path AS screenshot_path,
-					json.json_path AS json_path
+					screenshot.path AS screenshot_path,
+					json.path AS json_path
 				`,
 				map[string]any{
 					"subreddit_name":   newRedditPost.Subreddit,
@@ -141,8 +141,8 @@ func InsertRedditPost(newRedditPost RedditPost, env config.Neo4JEnvironment, ctx
 				CreatedDate:      createdDate,
 				StaticRootUrl:    redditPostResultMap["static_root_url"].(string),
 				StaticFileType:   redditPostResultMap["static_file_type"].(string),
-				JsonPost:         redditPostResultMap["screenshot_path"].(string),
-				Screenshot:       redditPostResultMap["json_path"].(string),
+				JsonPost:         redditPostResultMap["json_path"].(string),
+				Screenshot:       redditPostResultMap["screenshot_path"].(string),
 			}
 
 			return createdRedditPost, nil
@@ -212,7 +212,7 @@ func AttachRedditPostStaticFiles(existingRedditPost RedditPost, env config.Neo4J
 				RETURN
 					post.id AS id, 
 					screenshot.path AS screenshot_path,
-					json.json_path AS json_path
+					json.path AS json_path
 				`,
 				map[string]any{
 					"id":              existingRedditPost.Id,
@@ -420,8 +420,8 @@ func AttachRedditUser(existingRedditPost RedditPost, redditUser RedditUser, env 
 					subreddit.name AS post_subreddit,
 					post.url AS post_url,
 					post.title AS post_title,
-					screenshot.screenshot_path AS post_screenshot_path,
-					json.json_path AS post_json_path,
+					screenshot.path AS post_screenshot_path,
+					json.path AS post_json_path,
 					static_downloaded_setting.downloaded AS post_static_downloaded,
 					published_date.day AS post_created_date,
 					post.static_root_url AS post_static_root_url,
@@ -544,8 +544,8 @@ func ApppendRedditPostComments(redditPost RedditPost, redditComments []RedditCom
 					date(published_date.day) AS post_created_date,
 					post.static_root_url AS post_static_root_url,
 					static_file_type.type AS post_static_file_type,
-					screenshot.screenshot_path AS screenshot_path,
-					json.json_path AS json_path
+					screenshot.path AS screenshot_path,
+					json.path AS json_path
 				`,
 				map[string]any{
 					"reddit_post_id": redditPost.Id,

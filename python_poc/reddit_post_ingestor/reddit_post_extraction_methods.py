@@ -64,3 +64,9 @@ def get_post_dict_from_element(post_element) -> RedditPostDict:
     }
 
     return post_data_dict
+
+def get_post_json(url) -> str:
+    pass
+
+def take_post_screenshot(driver, url) -> bytes:
+    pass

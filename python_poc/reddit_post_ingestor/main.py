@@ -7,7 +7,7 @@ import pandas as pd
 import pprint
 import requests
 
-from reddit_post_extraction_methods import RedditPostDict, get_post_dict_from_element
+from reddit_post_extraction_methods import RedditPostDict, get_post_dict_from_element, get_post_json, take_post_screenshot
 
 if __name__ == "__main__":
 
@@ -56,7 +56,10 @@ if __name__ == "__main__":
         duplicate_ids: list[str] = [post["id"] for post in unique_post_json]
         unique_posts: list[RedditPostDict] = [post for post in all_posts_on_page if post['id'] not in duplicate_ids]
 
-        if len(unique_posts):
+        # Actually inserting the post data into the database:
+        # TODO: Implement this
+
+        if len(unique_posts) == 0:
             return
 
 
