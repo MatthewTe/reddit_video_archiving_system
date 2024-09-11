@@ -2,6 +2,7 @@ from typing import TypedDict
 import uuid
 import pandas as pd
 import json
+import requests
 import io
 from minio import Minio
 from minio.error import S3Error
@@ -91,5 +92,32 @@ def insert_static_file_to_blob(memory_buffer: io.BytesIO, bucket_name: str, full
         print("Error in inserting file to blob: ", exc)
         return None
 
-def insert_reddit_post(post: RedditPostDict):
-    pass
+class RedditUserDict(TypedDict):
+    author_name: str
+    author_full_name: str
+
+class RedditPostCreationResult(TypedDict):
+    parent_post: RedditPostDict
+    attached_user: RedditUserDict
+
+def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> RedditPostCreationResult | None:
+
+    try:
+        reddit_post_creation_response = requests.post("reddit_post_creation_url", data=post)
+        reddit_post_creation_response.raise_for_status()
+        created_post: RedditPostDict = reddit_post_creation_response.json()
+    except Exception as e:
+        return None
+
+    try:
+        attached_user_respone = requests.post("attach_reddit_user_url", data={
+            "parent_post": created_post,
+            "attached_user": reddit_user
+        })
+        attached_user_respone.raise_for_status()
+        attached_response: RedditPostCreationResult = attached_user_respone.json()
+        return attached_response
+    except Exception as e:
+        return None
+
+

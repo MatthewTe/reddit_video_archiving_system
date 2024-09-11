@@ -101,9 +101,13 @@ if __name__ == "__main__":
             # TODO: Do better error handeling here:
             if uploaded_screenshot_filepath is not None:
                 post['screenshot_path'] = uploaded_screenshot_filepath
+            else:
+                continue
             if uploaded_json_filepath is not None:
                 post['json_path'] = uploaded_json_filepath
-            
+            else:
+                continue
+
             post_creation_response = insert_reddit_post(post)
 
 
