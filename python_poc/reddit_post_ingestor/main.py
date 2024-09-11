@@ -2,16 +2,32 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 import uuid
+from minio import Minio
 from datetime import datetime, timezone
 import pandas as pd
 import pprint
 import requests
+import io
 
-from reddit_post_extraction_methods import RedditPostDict, get_post_dict_from_element, get_post_json, take_post_screenshot
+from reddit_post_extraction_methods import RedditPostDict, get_post_dict_from_element, get_post_json, take_post_screenshot, insert_static_file_to_blob, insert_reddit_post
 
 if __name__ == "__main__":
 
+    MINIO_CLIENT = Minio("play.min.io",
+        access_key="Q3AM3UQ867SPQQA43P2F",
+        secret_key="zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG",
+    )
+    BUCKET_NAME = "reddit_posts"
     SUBREDDIT = "CombatFootage"
+
+    found = MINIO_CLIENT.bucket_exists(BUCKET_NAME)
+    if not found:
+        MINIO_CLIENT.make_bucket(BUCKET_NAME)
+        print("Created bucket", BUCKET_NAME)
+    else:
+        print("Bucket", BUCKET_NAME, "already exists")
+
+
 
     driver = webdriver.Chrome()
     driver.get(f"https://old.reddit.com/r/{SUBREDDIT}/")
@@ -61,6 +77,34 @@ if __name__ == "__main__":
 
         if len(unique_posts) == 0:
             return
+
+        for post in unique_posts:
+            screenshot_stream: io.BytesIO | None = take_post_screenshot(driver, post['url'])
+            json_stream: io.BytesIO | None = get_post_json(post["url"])
+            
+            uploaded_screenshot_filepath: str | None = insert_static_file_to_blob(
+                memory_buffer=screenshot_stream,
+                bucket_name=BUCKET_NAME,
+                full_filepath=post['screenshot_path'],
+                content_type="image/png",
+                minio_client=MINIO_CLIENT
+            )
+
+            uploaded_json_filepath: str | None = insert_static_file_to_blob(
+                memory_buffer=json_stream,
+                bucket_name=BUCKET_NAME,
+                full_filepath=post['json_path'],
+                content_type="application/json",
+                minio_client=MINIO_CLIENT
+           )
+
+            # TODO: Do better error handeling here:
+            if uploaded_screenshot_filepath is not None:
+                post['screenshot_path'] = uploaded_screenshot_filepath
+            if uploaded_json_filepath is not None:
+                post['json_path'] = uploaded_json_filepath
+            
+            post_creation_response = insert_reddit_post(post)
 
 
         next_button_url = driver.find_elements(By.XPATH, "//span[@class='next-button']").find_element(By.TAG_NAME, "a").get_attribute("href")

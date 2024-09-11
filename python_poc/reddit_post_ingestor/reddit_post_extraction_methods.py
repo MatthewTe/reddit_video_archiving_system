@@ -1,6 +1,10 @@
 from typing import TypedDict
 import uuid
 import pandas as pd
+import json
+import io
+from minio import Minio
+from minio.error import S3Error
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -69,4 +73,23 @@ def get_post_json(url) -> str:
     pass
 
 def take_post_screenshot(driver, url) -> bytes:
+    pass
+
+def insert_static_file_to_blob(memory_buffer: io.BytesIO, bucket_name: str, full_filepath: str, content_type: str, minio_client: Minio):
+    
+    try:
+        minio_client.put_object(
+            bucket_name=bucket_name,
+            object_name=full_filepath,
+            data=memory_buffer,
+            length=len(memory_buffer),
+            content_type=content_type
+        )
+        return full_filepath
+
+    except S3Error as exc:
+        print("Error in inserting file to blob: ", exc)
+        return None
+
+def insert_reddit_post(post: RedditPostDict):
     pass
