@@ -107,10 +107,12 @@ if __name__ == "__main__":
             post_creation_response = insert_reddit_post(post)
 
 
-        next_button_url = driver.find_elements(By.XPATH, "//span[@class='next-button']").find_element(By.TAG_NAME, "a").get_attribute("href")
-        if len(next_button_url) == 0:
+        next_button_results: list = driver.find_elements(By.XPATH, "//span[@class='next-button']")
+        if len(next_button_results) == 0:
             return
         
+        next_button_url = next_button_results[0].find_element(By.TAG_NAME, "a").get_attribute("href")
+
         insert_raw_reddit_post(driver, next_button_url)
 
     
