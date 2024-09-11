@@ -9,7 +9,11 @@ import pprint
 import requests
 import io
 
-from reddit_post_extraction_methods import RedditPostDict, get_post_dict_from_element, get_post_json, take_post_screenshot, insert_static_file_to_blob, insert_reddit_post
+from reddit_post_extraction_methods import (
+    RedditPostDict, RedditPostCreationResult, 
+    get_post_dict_from_element, get_post_json, take_post_screenshot, 
+    insert_static_file_to_blob, insert_reddit_post
+)
 
 if __name__ == "__main__":
 
@@ -108,7 +112,7 @@ if __name__ == "__main__":
             else:
                 continue
 
-            post_creation_response = insert_reddit_post(post)
+            post_creation_response: RedditPostCreationResult | None = insert_reddit_post(post)
 
 
         next_button_results: list = driver.find_elements(By.XPATH, "//span[@class='next-button']")
