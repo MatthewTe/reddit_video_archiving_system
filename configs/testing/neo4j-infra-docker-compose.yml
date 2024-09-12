@@ -7,3 +7,13 @@ services:
       - "7687:7687"
     env_file:
       - infra-testing.env
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio-for-testing
+    env_file:
+      - infra-testing.env
+    ports:
+      - "9000:9000"    
+      - "9001:9001"
+    command: server /data --console-address ":9001"

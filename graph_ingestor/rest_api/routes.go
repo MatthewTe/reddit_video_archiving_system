@@ -13,6 +13,5 @@ func GenerateServerMux() *http.ServeMux {
 	router.HandleFunc("POST /v1/reddit/attach_user_to_post", HandleAttachRedditUserToPost)
 	router.HandleFunc("POST /v1/reddit/append_comments", HandleAppendRedditComments)
 	router.HandleFunc("GET /v1/reddit/check_posts_exists", HandleCheckRedditPostExists)
-
 	return router
 }
