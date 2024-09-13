@@ -92,6 +92,44 @@ def get_author_dict_from_element(post_element) -> RedditAuthorDict:
 
     return reddit_user
 
+class RedditCommentDict(TypedDict):
+    reddit_post_id: str
+    comment_id: str
+    comment_body: str
+    associated_user: RedditAuthorDict
+    posted_timestamp: str
+
+class RedditCommentAttachmentDict(TypedDict):
+    reddit_post: RedditPostDict
+    attached_comments: list[RedditCommentDict]
+
+def get_comments_from_json(post: RedditPostDict, json_str: str) -> RedditCommentAttachmentDict:
+    row_reddit_json = json.loads(json_str)
+    comment_content = row_reddit_json[1]['data']['children']
+
+    post_comment_dicts: list[RedditCommentDict] = []
+    for comment_json in comment_content:
+        reddit_comment_dict: RedditCommentDict = {
+            "reddit_post_id":post['id'],
+            "comment_id":comment_json["id"],
+            "comment_body":comment_json["body"],
+            "associated_user": {
+                "author_full_name":comment_json["author_fullname"],
+                "author":comment_json["author"]
+
+            },
+            "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="ms").strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+        post_comment_dicts.append(reddit_comment_dict)
+
+    attached_reddit_comments: RedditCommentAttachmentDict = {
+        "reddit_post": post,
+        "attached_comments": post_comment_dicts
+    }
+
+    return attached_reddit_comments
+    
+
 def get_post_json(url) -> io.BytesIO | None:
 
     time.sleep(1)
@@ -183,7 +221,6 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> Red
             - request object: {attached_response} 
         """)
         return None
-    
 
 def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MINIO_CLIENT, BUCKET_NAME: str, login: bool=False):
     driver.get(page_url)
@@ -254,9 +291,13 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
 
         logger.info(f"Trying to take screenshot for {post['url']}")
         screenshot_stream: io.BytesIO | None = take_post_screenshot(driver, post['url'])
+        
         logger.info(f"Extracting json representation of post {post['url']}")
         json_stream: io.BytesIO | None = get_post_json(post["url"])
-        
+
+        logger.info(f"Extracting comments from json post")
+        reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream.read().decode("utf-8"))
+
         uploaded_screenshot_filepath: str | None = insert_static_file_to_blob(
             memory_buffer=screenshot_stream,
             bucket_name=BUCKET_NAME,
@@ -283,6 +324,8 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
             post=post, 
             reddit_user=author_associated_w_posts[post['id']]
         )
+
+        # TODO: Add the attach reddit comment request method
 
         logger.info(f"Created and attached reddit post and user \n  - response: {post_creation_response}")
 
