@@ -5,6 +5,7 @@ import json
 import requests
 import io
 import sys
+import pprint
 import time
 import base64
 from loguru import logger
@@ -103,65 +104,109 @@ class RedditCommentAttachmentDict(TypedDict):
     reddit_post: RedditPostDict
     attached_comments: list[RedditCommentDict]
 
-def get_comments_from_json(post: RedditPostDict, json_str: str) -> RedditCommentAttachmentDict:
-    row_reddit_json = json.loads(json_str)
-    comment_content = row_reddit_json[1]['data']['children']
-
-    post_comment_dicts: list[RedditCommentDict] = []
-    for comment_json in comment_content:
-        reddit_comment_dict: RedditCommentDict = {
-            "reddit_post_id":post['id'],
-            "comment_id":comment_json["id"],
-            "comment_body":comment_json["body"],
-            "associated_user": {
-                "author_full_name":comment_json["author_fullname"],
-                "author":comment_json["author"]
-
-            },
-            "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="ms").strftime("%Y-%m-%dT%H:%M:%SZ")
-        }
-        post_comment_dicts.append(reddit_comment_dict)
-
-    attached_reddit_comments: RedditCommentAttachmentDict = {
-        "reddit_post": post,
-        "attached_comments": post_comment_dicts
-    }
-
-    return attached_reddit_comments
-    
-
-def get_post_json(url) -> io.BytesIO | None:
-
-    time.sleep(1)
+def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) -> RedditCommentAttachmentDict:
 
     try:
-        get_json_response = requests.get(f"{url}.json")
-        get_json_response.raise_for_status()
+        json_bytes_stream.seek(0)
+        
+        row_reddit_json = json.loads(json_bytes_stream.read())
+        comment_content = row_reddit_json[1]['data']['children']
 
-        json_dict = get_json_response.json()
+        post_comment_dicts: list[RedditCommentDict] = []
+        for comment_json in comment_content:
+            
+            comment_json = comment_json['data']
+
+            try:
+                author = comment_json['author']
+            except Exception as e:
+                logger.warning(f"Unable to extract author from post json so setting author to none: \n {pprint.pprint(comment_json)}")
+                author = "not_found"
+
+            if author == '[deleted]':
+                associated_user: RedditUserDict = {
+                    "author_full_name": "deleted_user",
+                    "author_name": author
+                }
+            elif author == 'not_found':
+                associated_user: RedditUserDict = {
+                    "author_full_name": "not_found",
+                    "author_name": author
+                }
+            else:
+                associated_user: RedditUserDict = {
+                    "author_full_name": comment_json['author_fullname'],
+                    "author_name": author
+                }
+
+            #TODO: Add some error catching here:
+            reddit_comment_dict: RedditCommentDict = {
+                "reddit_post_id":post['id'],
+                "comment_id":comment_json["id"],
+                "comment_body":comment_json["body"],
+                "associated_user": associated_user,
+                "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
+            }
+
+            post_comment_dicts.append(reddit_comment_dict)
+
+        attached_reddit_comments: RedditCommentAttachmentDict = {
+            "reddit_post": post,
+            "attached_comments": post_comment_dicts
+        }
+
+        return attached_reddit_comments
+
+    except Exception as e:
+        logger.error(f"Error in extracting RedditCommentAttachmentDict from post json \n -err: {str(e)} \n post-{pprint.pprint(post)}")
+        return None
+
+    
+def get_post_json(driver, url) -> io.BytesIO | None:
+
+    time.sleep(1.5)
+
+    try:
+
+        driver.get(f"{url}.json")
+
+        json_element = driver.find_element(By.XPATH, "/html/body/pre")
+        json_dict =  json_element.get_attribute("innerText")
 
         json_bytes_stream = io.BytesIO()
-        json_bytes_stream.write(json.dumps(json_dict).encode())
+        json_bytes_stream.write(json_dict.encode())
+
+        time.sleep(1.5)
 
         return json_bytes_stream
 
     except requests.HTTPError as err:
+        logger.error(f"""
+            Unable to get the json representation of the post {url} \n
+            - error: {str(err)}
+        """)
         return None
 
 def take_post_screenshot(driver, url) -> bytes:
 
-    driver.get(url)
-    driver.implicitly_wait(4000)
+    try:
+        driver.get(url)
+        driver.implicitly_wait(4000)
 
-    time.sleep(5)
+        time.sleep(5)
 
-    screenshot_base64 = driver.get_screenshot_as_base64()
-    screenshot_bytes: bytes = base64.b64decode(screenshot_base64)
+        screenshot_base64 = driver.get_screenshot_as_base64()
+        screenshot_bytes: bytes = base64.b64decode(screenshot_base64)
 
-    screenshot_bytes_stream = io.BytesIO()
-    screenshot_bytes_stream.write(screenshot_bytes)
+        screenshot_bytes_stream = io.BytesIO()
+        screenshot_bytes_stream.write(screenshot_bytes)
 
-    return screenshot_bytes_stream
+        return screenshot_bytes_stream
+    except Exception as e:
+        logger.error(f"""Error in trying to take a screenshot of page {url}
+        - error {str(e)}
+        """)
+        return None
 
 def insert_static_file_to_blob(memory_buffer: io.BytesIO, bucket_name: str, full_filepath: str, content_type: str, minio_client: Minio):
     
@@ -222,6 +267,23 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> Red
         """)
         return None
 
+def attach_reddit_post_comments(attached_comment_dict: RedditCommentAttachmentDict) -> RedditCommentAttachmentDict | None:
+    
+    try:
+        attached_comment_response = requests.post("http://localhost:8080/v1/reddit/append_comments", json=attached_comment_dict)
+        attached_comment_response.raise_for_status()
+        attached_comments: RedditCommentAttachmentDict = attached_comment_response.json()
+        return attached_comments
+    except requests.HTTPError as e:
+        logger.error(
+            f"""Unable to create comments and attach them to reddit post - {str(e)} \n
+            - Post: {attached_comment_dict['reddit_post']} \n
+            - Comments {attached_comment_dict['attached_comments']}
+        """)
+        return None
+
+
+
 def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MINIO_CLIENT, BUCKET_NAME: str, login: bool=False):
     driver.get(page_url)
 
@@ -261,6 +323,9 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     author_associated_w_posts: dict[str, RedditPostDict] = {}
     for post_element in all_posts_on_page:
         post_dict: RedditPostDict = get_post_dict_from_element(post_element)
+        
+        # TODO: Print out all of the reddit post values to confirm datetimes:
+        logger.info(f"\n\n {pprint.pprint(post_dict)} \n\n")
 
         author_dict: RedditAuthorDict = get_author_dict_from_element(post_element)
         author_associated_w_posts[post_dict['id']] = author_dict
@@ -270,7 +335,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     logger.info(f"Found a total of {len(posts_to_ingest)} posts from page {page_url}")
 
     try:
-        unique_post_response = requests.get("http://localhost:8080/v1/reddit/check_posts_exists", params={'reddit_post_ids': [post['id']for post in posts_to_ingest]})
+        unique_post_response = requests.get("http://localhost:8080/v1/reddit/check_posts_exists", params={'reddit_post_ids': ",".join([post['id']for post in posts_to_ingest])})
         unique_post_response.raise_for_status()
         unique_post_json: list[dict] = unique_post_response.json()
     except requests.HTTPError as exception:
@@ -291,12 +356,20 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
 
         logger.info(f"Trying to take screenshot for {post['url']}")
         screenshot_stream: io.BytesIO | None = take_post_screenshot(driver, post['url'])
-        
-        logger.info(f"Extracting json representation of post {post['url']}")
-        json_stream: io.BytesIO | None = get_post_json(post["url"])
+        if screenshot_stream is None:
+            logger.error(f"""Screenshot bytes stream returned as none with error. Not inserting post {post['id']} \n
+            - post {pprint.pprint(post)}
+            """)
+            continue
 
-        logger.info(f"Extracting comments from json post")
-        reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream.read().decode("utf-8"))
+        logger.info(f"Extracting json representation of post {post['url']}")
+        json_stream: io.BytesIO | None = get_post_json(driver, post["url"])
+        if json_stream is None:
+            logger.error(f"""json response bytes stream returned as none with error. Not inserting post {post['id']} \n
+            - post {pprint.pprint(post)}
+            """)
+            continue
+
 
         uploaded_screenshot_filepath: str | None = insert_static_file_to_blob(
             memory_buffer=screenshot_stream,
@@ -315,7 +388,10 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         )
 
         if uploaded_screenshot_filepath is None or uploaded_json_filepath is None:
-            return
+            logger.error(f"Uploaded screenshot or json filepath is None so there was an error in inserting a static file to blob")
+            continue
+        else:
+            logger.info(f"Sucessfully inserted screenshot and json to blob storage: \n - sreenshot: {uploaded_json_filepath} \n -json post: {uploaded_json_filepath}")
         
         post['screenshot_path'] = uploaded_screenshot_filepath
         post['json_path'] = uploaded_json_filepath
@@ -324,8 +400,18 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
             post=post, 
             reddit_user=author_associated_w_posts[post['id']]
         )
+        if post_creation_response is None:
+            logger.error(f"Error in creating post for {post['id']}. Post was not added to the database")
+            return
 
-        # TODO: Add the attach reddit comment request method
+        logger.info(f"Extracting comments from json post")
+        reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream)
+        
+        logger.info(f"Making request to API to attach reddit comments to post {reddit_comments_dict['reddit_post']['id']}")
+        post_comment_attachment_response: RedditCommentAttachmentDict | None = attach_reddit_post_comments(reddit_comments_dict)
+        if post_comment_attachment_response is None:
+            logger.error(f"Error in attaching comments to post {reddit_comments_dict['reddit_post']['id']}")
+            return
 
         logger.info(f"Created and attached reddit post and user \n  - response: {post_creation_response}")
 

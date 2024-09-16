@@ -21,11 +21,11 @@ type RedditUser struct {
 }
 
 type RedditComment struct {
-	RedditPostId    string
-	CommentId       string
-	Body            string
-	AssociatedUser  RedditUser
-	PostedTimestamp time.Time
+	RedditPostId    string     `json:"reddit_post_id"`
+	CommentId       string     `json:"comment_id"`
+	Body            string     `json:"comment_body"`
+	AssociatedUser  RedditUser `json:"associated_user"`
+	PostedTimestamp time.Time  `json:"posted_timestamp"`
 }
 
 // Result Wrapper objects

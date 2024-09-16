@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer/config"
 	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/data_layer/reddit"
@@ -155,8 +156,8 @@ func HandleAttachRedditUserToPost(w http.ResponseWriter, r *http.Request) {
 }
 
 type AppendRedditPostCommentsRequest struct {
-	RedditPost     reddit.RedditPost
-	RedditComments []reddit.RedditComment
+	RedditPost     reddit.RedditPost      `json:"reddit_post"`
+	RedditComments []reddit.RedditComment `json:"attached_comments"`
 }
 
 func HandleAppendRedditComments(w http.ResponseWriter, r *http.Request) {
@@ -212,7 +213,9 @@ func HandleCheckRedditPostExists(w http.ResponseWriter, r *http.Request) {
 	}
 	var ctx context.Context = context.Background()
 
-	idsToCheck := r.URL.Query()["reddit_post_ids"]
+	rawIds := r.URL.Query()["reddit_post_ids"]
+	var idsToCheck []string = strings.Split(rawIds[0], ",")
+
 	redditPostExistsResult, err := reddit.CheckRedditPostExists(idsToCheck, env, ctx)
 	if err != nil {
 		http.Error(w, "Error in checking if the reddit post exists: "+err.Error(), http.StatusBadRequest)
