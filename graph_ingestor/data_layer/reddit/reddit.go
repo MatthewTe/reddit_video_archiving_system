@@ -685,7 +685,7 @@ func CheckRedditPostExists(redditPostIds []string, env config.Neo4JEnvironment, 
 				postExistsResult, err := tx.Run(
 					ctx,
 					`
-					OPTIONAL MATCH (post:RedditPost {id: $id})-[:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag)
+					OPTIONAL MATCH (post:Reddit:Post {id: $id})-[:STATIC_DOWNLOAD_STATUS]->(static_downloaded_setting:StaticFile:Settings:StaticDownloadedFlag)
 					RETURN 
 						COALESCE(static_downloaded_setting.downloaded, false) AS static_downloaded_flag, 
 						post IS NOT NULL AS post_exists

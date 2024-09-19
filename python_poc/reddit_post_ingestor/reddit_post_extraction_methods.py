@@ -17,20 +17,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-'''
-    type RedditPost struct {
-        Id               string    `json:"id"`
-        Subreddit        string    `json:"subreddit"`
-        Url              string    `json:"url"`
-        Title            string    `json:"title"`
-        StaticDownloaded bool      `json:"static_downloaded_flag"`
-        Screenshot       string    `json:"screenshot_path"`
-        JsonPost         string    `json:"json_path"`
-        CreatedDate      time.Time `json:"created_date"`
-        StaticRootUrl    string    `json:"static_root_url"`
-        StaticFileType   string    `json:"static_file_type"`
-    }
-    '''
+
+from config import Secrets
 
 class RedditPostDict(TypedDict):
     id: str
@@ -140,15 +128,19 @@ def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) 
                 }
 
             #TODO: Add some error catching here:
-            reddit_comment_dict: RedditCommentDict = {
-                "reddit_post_id":post['id'],
-                "comment_id":comment_json["id"],
-                "comment_body":comment_json["body"],
-                "associated_user": associated_user,
-                "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
-            }
+            try:
+                reddit_comment_dict: RedditCommentDict = {
+                    "reddit_post_id":post['id'],
+                    "comment_id":comment_json["id"],
+                    "comment_body":comment_json["body"],
+                    "associated_user": associated_user,
+                    "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
+                }
 
-            post_comment_dicts.append(reddit_comment_dict)
+                post_comment_dicts.append(reddit_comment_dict)
+            except Exception as e:
+                logger.warning(str(e))
+                continue
 
         attached_reddit_comments: RedditCommentAttachmentDict = {
             "reddit_post": post,
@@ -235,10 +227,10 @@ class RedditPostCreationResult(TypedDict):
     parent_post: RedditPostDict
     attached_user: RedditUserDict
 
-def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> RedditPostCreationResult | None:
+def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secrets: Secrets) -> RedditPostCreationResult | None:
 
     try:
-        reddit_post_creation_response = requests.post("http://localhost:8080/v1/reddit/create_post", json=post)
+        reddit_post_creation_response = requests.post(f"{secrets['neo4j_url']}/v1/reddit/create_post", json=post)
         reddit_post_creation_response.raise_for_status()
         created_post: RedditPostDict = reddit_post_creation_response.json()
         logger.info(f"Inserterd reddit post into the database {created_post}")
@@ -251,7 +243,7 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> Red
         return None
 
     try:
-        attached_user_respone = requests.post("http://localhost:8080/v1/reddit/attach_user_to_post", json={
+        attached_user_respone = requests.post(f"{secrets['neo4j_url']}/v1/reddit/attach_user_to_post", json={
             "parent_post": created_post,
             "attached_user": reddit_user
         })
@@ -267,10 +259,10 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict) -> Red
         """)
         return None
 
-def attach_reddit_post_comments(attached_comment_dict: RedditCommentAttachmentDict) -> RedditCommentAttachmentDict | None:
+def attach_reddit_post_comments(attached_comment_dict: RedditCommentAttachmentDict, secrets: Secrets) -> RedditCommentAttachmentDict | None:
     
     try:
-        attached_comment_response = requests.post("http://localhost:8080/v1/reddit/append_comments", json=attached_comment_dict)
+        attached_comment_response = requests.post(f"{secrets['neo4j_url']}/v1/reddit/append_comments", json=attached_comment_dict)
         attached_comment_response.raise_for_status()
         attached_comments: RedditCommentAttachmentDict = attached_comment_response.json()
         return attached_comments
@@ -284,7 +276,7 @@ def attach_reddit_post_comments(attached_comment_dict: RedditCommentAttachmentDi
 
 
 
-def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MINIO_CLIENT, BUCKET_NAME: str, login: bool=False):
+def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MINIO_CLIENT, BUCKET_NAME: str, secrets: Secrets, login: bool=False):
     driver.get(page_url)
 
     driver.implicitly_wait(3000)
@@ -299,8 +291,8 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         login_input = driver.find_element(By.ID, "login-username")
         password_input = driver.find_element(By.ID, "login-password")
 
-        login_input.send_keys("")
-        password_input.send_keys("")
+        login_input.send_keys(secrets['reddit_username'])
+        password_input.send_keys(secrets['reddit_password'])
 
         input("Press any key to resume...")
 
@@ -323,10 +315,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     author_associated_w_posts: dict[str, RedditPostDict] = {}
     for post_element in all_posts_on_page:
         post_dict: RedditPostDict = get_post_dict_from_element(post_element)
-        
-        # TODO: Print out all of the reddit post values to confirm datetimes:
-        logger.info(f"\n\n {pprint.pprint(post_dict)} \n\n")
-
+        pprint.pprint(post_dict)
         author_dict: RedditAuthorDict = get_author_dict_from_element(post_element)
         author_associated_w_posts[post_dict['id']] = author_dict
 
@@ -335,11 +324,11 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     logger.info(f"Found a total of {len(posts_to_ingest)} posts from page {page_url}")
 
     try:
-        unique_post_response = requests.get("http://localhost:8080/v1/reddit/check_posts_exists", params={'reddit_post_ids': ",".join([post['id']for post in posts_to_ingest])})
+        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/reddit/check_posts_exists", params={'reddit_post_ids': ",".join([post['id']for post in posts_to_ingest])})
         unique_post_response.raise_for_status()
         unique_post_json: list[dict] = unique_post_response.json()
     except requests.HTTPError as exception:
-        logger.exception(exception)
+        logger.exception(f"Error in checking existing reddit posts from API {exception}")
         return
 
     duplicate_ids: list[str] = [post["id"] for post in unique_post_json if post['post_exists'] == True]
@@ -398,7 +387,8 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         
         post_creation_response: RedditPostCreationResult | None = insert_reddit_post(
             post=post, 
-            reddit_user=author_associated_w_posts[post['id']]
+            reddit_user=author_associated_w_posts[post['id']],
+            secrets=secrets
         )
         if post_creation_response is None:
             logger.error(f"Error in creating post for {post['id']}. Post was not added to the database")
@@ -408,7 +398,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream)
         
         logger.info(f"Making request to API to attach reddit comments to post {reddit_comments_dict['reddit_post']['id']}")
-        post_comment_attachment_response: RedditCommentAttachmentDict | None = attach_reddit_post_comments(reddit_comments_dict)
+        post_comment_attachment_response: RedditCommentAttachmentDict | None = attach_reddit_post_comments(reddit_comments_dict, secrets=secrets)
         if post_comment_attachment_response is None:
             logger.error(f"Error in attaching comments to post {reddit_comments_dict['reddit_post']['id']}")
             return
@@ -426,5 +416,6 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         page_url=next_button_url,
         MINIO_CLIENT=MINIO_CLIENT,
         BUCKET_NAME=BUCKET_NAME,
-        login=False
+        login=False,
+        secrets=secrets
     )
