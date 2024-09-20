@@ -87,6 +87,7 @@ class RedditCommentDict(TypedDict):
     comment_body: str
     associated_user: RedditAuthorDict
     posted_timestamp: str
+    replies: dict[str, dict]
 
 class RedditCommentAttachmentDict(TypedDict):
     reddit_post: RedditPostDict
