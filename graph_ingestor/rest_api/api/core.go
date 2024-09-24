@@ -192,3 +192,73 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 
 	return graphResultMap.(map[string]any), nil
 }
+
+type NodeExistsResponse struct {
+	Id     string   `json:"id"`
+	Exists bool     `json:"exists"`
+	Labels []string `json:"node_labels"`
+}
+
+func CheckNodeExists(ids []string, env Neo4JEnvironment, ctx context.Context) ([]NodeExistsResponse, error) {
+
+	driver, err := neo4j.NewDriverWithContext(env.URI, neo4j.BasicAuth(env.User, env.Password, ""))
+	if err != nil {
+		return nil, err
+	}
+	defer driver.Close(ctx)
+
+	if err = driver.VerifyConnectivity(ctx); err != nil {
+		return nil, err
+	} else {
+		log.Printf("Successfully connected to %s", env.URI)
+	}
+
+	session := driver.NewSession(ctx, neo4j.SessionConfig{DatabaseName: "neo4j"})
+	defer session.Close(ctx)
+
+	nodeExistResponses, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+
+		var nodeExistingResponses []NodeExistsResponse
+		for _, id := range ids {
+
+			idExistResponse, err := tx.Run(ctx,
+				`
+				OPTIONAL MATCH (n {id: $id})
+				RETURN 
+    				n IS NOT NULL AS exists, 
+    				COALESCE(labels(n), []) AS node_labels
+				`,
+				map[string]any{"id": id},
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			if idExistResponse.Next(ctx) {
+				idExistResponseMap := idExistResponse.Record().AsMap()
+
+				nodeLabels := idExistResponseMap["node_labels"].([]interface{})
+				var labels []string
+				for _, value := range nodeLabels {
+					labels = append(labels, value.(string))
+				}
+
+				nodeExistingResponses = append(nodeExistingResponses, NodeExistsResponse{
+					Id:     id,
+					Exists: idExistResponseMap["exists"].(bool),
+					Labels: labels,
+				})
+			} else {
+				log.Printf("Something strange happened when running the check-exists query for the %s node and was unable to append response", id)
+			}
+		}
+		return nodeExistingResponses, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return nodeExistResponses.([]NodeExistsResponse), nil
+
+}

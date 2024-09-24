@@ -5,9 +5,38 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/rest_api/api"
 )
+
+func HandleCheckIfNodesExist(w http.ResponseWriter, r *http.Request) {
+
+	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
+		URI:      "neo4j://localhost:7687",
+		User:     "neo4j",
+		Password: "test_password",
+	}
+	var ctx context.Context = context.Background()
+
+	rawIds := r.URL.Query()["post_ids"]
+	var idsToCheck []string = strings.Split(rawIds[0], ",")
+
+	checkPostExistsResult, err := api.CheckNodeExists(idsToCheck, env, ctx)
+	if err != nil {
+		http.Error(w, "Error in checking if the post exists: "+err.Error(), http.StatusBadRequest)
+	}
+
+	checkPostExistsData, err := json.Marshal(checkPostExistsResult)
+	if err != nil {
+		http.Error(w, "Error in marshaling JSON data for Post Exists response", http.StatusBadRequest)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(checkPostExistsData)
+
+}
 
 func HandleNodeEdgeCreationRequest(w http.ResponseWriter, r *http.Request) {
 

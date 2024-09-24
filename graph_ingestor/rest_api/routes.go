@@ -12,6 +12,7 @@ func GenerateServerMux() *http.ServeMux {
 	router := http.NewServeMux()
 
 	router.HandleFunc("POST /v1/api/run_query", handlers.HandleNodeEdgeCreationRequest)
+	router.HandleFunc("GET /v1/api/exists", handlers.HandleCheckIfNodesExist)
 
 	return router
 }
