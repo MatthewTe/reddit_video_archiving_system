@@ -101,6 +101,12 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 						} else {
 							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: date($%s), \n", propertyName, propertyName))
 						}
+					case "datetime":
+						if count == numProperties {
+							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: datetime($%s) \n", propertyName, propertyName))
+						} else {
+							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: datetime($%s), \n", propertyName, propertyName))
+						}
 					default:
 						if count == numProperties {
 							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: $%s \n", propertyName, propertyName))
@@ -139,9 +145,9 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 				edgeCypherQueryBuilder.WriteString("MATCH (n {id: $from}), (m {id: $to})\n")
 
 				if len(formattedEdgeLabels) == 0 {
-					edgeCypherQueryBuilder.WriteString("CREATE (n)-[{\n\t")
+					edgeCypherQueryBuilder.WriteString("MERGE (n)-[{\n\t")
 				} else {
-					edgeCypherQueryBuilder.WriteString(fmt.Sprintf("CREATE (n)-[c:%s {\n\t", formattedEdgeLabels))
+					edgeCypherQueryBuilder.WriteString(fmt.Sprintf("MERGE (n)-[c:%s {\n\t", formattedEdgeLabels))
 				}
 
 				numProperties := len(edge.Properties)
@@ -156,6 +162,12 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s)", propertyName, propertyName))
 						} else {
 							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s),", propertyName, propertyName))
+						}
+					case "datetime":
+						if count == numProperties {
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s)", propertyName, propertyName))
+						} else {
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s),", propertyName, propertyName))
 						}
 
 					default:
