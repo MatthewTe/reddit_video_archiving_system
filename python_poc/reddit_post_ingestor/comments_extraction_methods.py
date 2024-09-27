@@ -38,7 +38,7 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
 
     if comment_listing_type == "t1":
         comment_data = comment_json_obj["data"]
-        associated_author = extract_author_from_json(comment_json_obj)
+        associated_author = extract_author_from_json(comment_data)
 
         comment_full_id: str = comment_data["id"]
         comment_node = {
