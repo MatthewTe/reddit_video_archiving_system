@@ -1,0 +1,29 @@
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio-for-testing
+    env_file:
+      - infra-prod.env
+    ports:
+      - "9000:9000"    
+      - "9001:9001"
+    volumes:
+      - minio_prod_data:/data
+    command: server /data --console-address ":9001"
+
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j-for-testing
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    env_file:
+      - infra-prod.env
+    volumes:
+      - neo4j_prod_volume:/var/lib/neo4j
+
+volumes:
+  neo4j_prod_volume:
+  minio_prod_data:
+    driver: local
