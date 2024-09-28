@@ -1,0 +1,148 @@
+[
+    {
+        "type": "node",
+        "query_type": "CREATE",
+        "labels": [
+            "Entity",
+            "Post",
+            "Reddit"
+        ],
+        "properties": {
+            "id": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76",
+            "url": "https://www.reddit.com/r/CombatFootage/comments/1fp3y4t/hezbollah_rocket_cooks_off_and_almost_kills/",
+            "title": "Hezbollah rocket cooks off and almost kills cameraman",
+            "static_root_url": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/",
+            "static_downloaded": false,
+            "static_file_type": "video"
+        }
+    },
+    {
+        "type": "node",
+        "query_type": "MERGE",
+        "labels": [
+            "Reddit",
+            "Subreddit",
+            "Entity"
+        ],
+        "properties": {
+            "id": "bfe769ca-cc14-3e74-b219-eb5ea9ca0d02",
+            "subreddit_name": "CombatFootage"
+        }
+    },
+    {
+        "type": "node",
+        "query_type": "CREATE",
+        "labels": [
+            "Date"
+        ],
+        "properties": {
+            "id": "f1f526af-bc8a-3a19-83f2-aa0f324d95d0",
+            "day": "2024-09-25T13:04:26Z"
+        }
+    },
+    {
+        "type": "node",
+        "query_type": "MERGE",
+        "labels": [
+            "Reddit",
+            "User",
+            "Entity",
+            "Account"
+        ],
+        "properties": {
+            "id": "ed1acd44-5e53-31b7-b89e-a409c02feb42",
+            "author_name": "shroxreddits",
+            "author_full_name": "t2_yz1bjia"
+        }
+    },
+    {
+        "type": "node",
+        "query_type": "MERGE",
+        "labels": [
+            "Reddit",
+            "Screenshot",
+            "StaticFile",
+            "Image"
+        ],
+        "properties": {
+            "id": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/screenshot.png",
+            "path": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/screenshot.png"
+        }
+    },
+    {
+        "type": "node",
+        "query_type": "MERGE",
+        "labels": [
+            "Reddit",
+            "Json",
+            "StaticFile"
+        ],
+        "properties": {
+            "id": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/post.json",
+            "path": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/post.json"
+        }
+    },
+    {
+        "type": "edge",
+        "labels": [
+            "POSTED_ON"
+        ],
+        "connection": {
+            "from": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76",
+            "to": "bfe769ca-cc14-3e74-b219-eb5ea9ca0d02"
+        },
+        "properties": {
+            "day": "2024-09-25T13:04:26Z"
+        }
+    },
+    {
+        "type": "edge",
+        "labels": [
+            "POSTED_ON"
+        ],
+        "connection": {
+            "from": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76",
+            "to": "f1f526af-bc8a-3a19-83f2-aa0f324d95d0"
+        },
+        "properties": {}
+    },
+    {
+        "type": "edge",
+        "labels": [
+            "TAKEN"
+        ],
+        "connection": {
+            "from": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76",
+            "to": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/screenshot.png"
+        },
+        "properties": {
+            "date": "2024-09-25T13:04:26Z"
+        }
+    },
+    {
+        "type": "edge",
+        "labels": [
+            "EXTRACTED"
+        ],
+        "connection": {
+            "from": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76",
+            "to": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76/post.json"
+        },
+        "properties": {
+            "date": "2024-09-25T13:04:26Z"
+        }
+    },
+    {
+        "type": "edge",
+        "labels": [
+            "POSTED"
+        ],
+        "connection": {
+            "from": "ed1acd44-5e53-31b7-b89e-a409c02feb42",
+            "to": "3d0fcb1a-d306-33cf-b6b7-7be7d6422f76"
+        },
+        "properties": {
+            "date": "2024-09-25T13:04:26Z"
+        }
+    }
+]

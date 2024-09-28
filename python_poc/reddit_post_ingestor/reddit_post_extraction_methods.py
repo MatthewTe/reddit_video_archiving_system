@@ -8,6 +8,7 @@ import sys
 import pprint
 import time
 import base64
+from datetime import datetime
 from loguru import logger
 from minio import Minio
 from minio.error import S3Error
@@ -18,6 +19,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
 
+from comments_extraction_methods import recursively_build_comment_creation_lst
 from config import Secrets
 
 class RedditPostDict(TypedDict):
@@ -65,16 +67,18 @@ def get_post_dict_from_element(post_element) -> RedditPostDict:
 
     return post_data_dict
 
-class RedditAuthorDict(TypedDict):
+class RedditUserDict(TypedDict):
+    id: str
     author_name: str
     author_full_name: str
 
-def get_author_dict_from_element(post_element) -> RedditAuthorDict:
+def get_author_dict_from_element(post_element) -> RedditUserDict:
 
     author_name = post_element.get_attribute("data-author")
     author_full_name = post_element.get_attribute("data-author-fullname")
 
-    reddit_user: RedditAuthorDict = {
+    reddit_user: RedditUserDict = {
+        "id": str(uuid.uuid3(uuid.NAMESPACE_URL, author_full_name)),
         "author_name": author_name, 
         "author_full_name": author_full_name
     }
@@ -85,16 +89,15 @@ class RedditCommentDict(TypedDict):
     reddit_post_id: str
     comment_id: str
     comment_body: str
-    associated_user: RedditAuthorDict
+    associated_user: RedditUserDict
     posted_timestamp: str
     replies: dict[str, dict]
 
 class RedditCommentAttachmentDict(TypedDict):
     reddit_post: RedditPostDict
-    attached_comments: list[RedditCommentDict]
+    attached_comments: list[dict]
 
 def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) -> RedditCommentAttachmentDict:
-
     try:
         json_bytes_stream.seek(0)
         
@@ -103,57 +106,17 @@ def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) 
 
         post_comment_dicts: list[RedditCommentDict] = []
         for comment_json in comment_content:
+            recursively_build_comment_creation_lst(
+                output_lst=post_comment_dicts,
+                post=post,
+                comment_json_obj=comment_json
+            )
             
-            comment_json = comment_json['data']
-
-            try:
-                author = comment_json['author']
-            except Exception as e:
-                logger.warning(f"Unable to extract author from post json so setting author to none: \n {pprint.pprint(comment_json)}")
-                author = "not_found"
-
-            if author == '[deleted]':
-                associated_user: RedditUserDict = {
-                    "author_full_name": "deleted_user",
-                    "author_name": author
-                }
-            elif author == 'not_found':
-                associated_user: RedditUserDict = {
-                    "author_full_name": "not_found",
-                    "author_name": author
-                }
-            else:
-                associated_user: RedditUserDict = {
-                    "author_full_name": comment_json['author_fullname'],
-                    "author_name": author
-                }
-
-            #TODO: Add some error catching here:
-            try:
-                reddit_comment_dict: RedditCommentDict = {
-                    "reddit_post_id":post['id'],
-                    "comment_id":comment_json["id"],
-                    "comment_body":comment_json["body"],
-                    "associated_user": associated_user,
-                    "posted_timestamp": pd.to_datetime(int(comment_json['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
-                }
-
-                post_comment_dicts.append(reddit_comment_dict)
-            except Exception as e:
-                logger.warning(str(e))
-                continue
-
-        attached_reddit_comments: RedditCommentAttachmentDict = {
-            "reddit_post": post,
-            "attached_comments": post_comment_dicts
-        }
-
-        return attached_reddit_comments
+        return post_comment_dicts
 
     except Exception as e:
-        logger.error(f"Error in extracting RedditCommentAttachmentDict from post json \n -err: {str(e)} \n post-{pprint.pprint(post)}")
+        logger.error(f"Unable to recusrively extract all comments from comments json: {str(e.with_traceback(None))}")
         return None
-
     
 def get_post_json(driver, url) -> io.BytesIO | None:
 
@@ -220,21 +183,140 @@ def insert_static_file_to_blob(memory_buffer: io.BytesIO, bucket_name: str, full
         print("Error in inserting file to blob: ", exc)
         return None
 
-class RedditUserDict(TypedDict):
-    author_name: str
-    author_full_name: str
-
 class RedditPostCreationResult(TypedDict):
     parent_post: RedditPostDict
     attached_user: RedditUserDict
 
 def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secrets: Secrets) -> RedditPostCreationResult | None:
 
+    # Building the main creation request body for the API:
+
+    post_day_str: str = datetime.strptime(post["created_date"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d").replace('"', '')
+    
+    post_body = [
+        {
+            "type":"node",
+            "query_type":"CREATE",
+            "labels": ['Entity', 'Post', "Reddit"],
+            "properties": {
+                "id": post["id"],
+                "url": post["url"],
+                "title": post["title"],
+                "static_root_url": post["static_root_url"],
+                "static_downloaded":post["static_downloaded_flag"],
+                "static_file_type": post['static_file_type']
+            }
+        },
+        {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels": ["Reddit", "Subreddit", "Entity"],
+            "properties": {
+                "id": str(uuid.uuid3(uuid.NAMESPACE_URL, post["subreddit"])),
+                "subreddit_name": post["subreddit"]
+            }
+        },
+        {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels": ["Date"],
+            "properties": {
+                "id": str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str)),
+                "day": post_day_str
+            }
+        },
+        {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels":["Reddit", "User", "Entity", "Account"],
+            "properties": {
+                "id": reddit_user["id"],
+                "author_name": reddit_user["author_name"],
+                "author_full_name": reddit_user["author_full_name"],
+            }
+        },
+        {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels":["Reddit", "Screenshot", "StaticFile", "Image"],
+            "properties": {
+                "id": post["screenshot_path"],
+                "path": post["screenshot_path"]
+            }
+        },
+        {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels":["Reddit", "Json", "StaticFile"],
+            "properties": {
+                "id": post["json_path"],
+                "path": post["json_path"]
+            }
+        },
+        # EDGES:
+        {
+            "type":"edge",
+            "labels": ["POSTED_ON"],
+            "connection": {
+                "from": post["id"],
+                "to": str(uuid.uuid3(uuid.NAMESPACE_URL, post["subreddit"]))
+            },
+            "properties": {
+                "datetime": post['created_date']
+            }
+        },
+        {
+            "type":"edge",
+            "labels": ["POSTED_ON"],
+            "connection": {
+                "from": post["id"],
+                "to": str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str))
+            },
+            "properties": {}
+        },
+        {
+            "type":"edge",
+            "labels": ["TAKEN"],
+            "connection": {
+                "from": post["id"],
+                "to": post["screenshot_path"]
+            },
+            "properties": {
+                "datetime": post["created_date"]
+            }
+        },
+        {
+            "type":"edge",
+            "labels": ["EXTRACTED"],
+            "connection": {
+                "from": post["id"],
+                "to": post['json_path']
+            },
+            "properties": {
+                "datetime": post["created_date"]
+            }
+        },
+        {
+            "type":"edge",
+            "labels":["POSTED"],
+            "connection": {
+                "from": reddit_user['id'],
+                "to": post["id"]
+            },
+            "properties": {
+                "datetime": post["created_date"]
+            }
+        }
+    ]
+
     try:
-        reddit_post_creation_response = requests.post(f"{secrets['neo4j_url']}/v1/reddit/create_post", json=post)
+        reddit_post_creation_response = requests.post(f"{secrets['neo4j_url']}/v1/api/run_query", json=post_body)
         reddit_post_creation_response.raise_for_status()
         created_post: RedditPostDict = reddit_post_creation_response.json()
         logger.info(f"Inserterd reddit post into the database {created_post}")
+        
+        return created_post
+
     except requests.HTTPError as e:
         logger.error(
         f"""Unable to create reddit post. Request returned with error: {str(e)} \n
@@ -243,27 +325,10 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secret
         """)
         return None
 
-    try:
-        attached_user_respone = requests.post(f"{secrets['neo4j_url']}/v1/reddit/attach_user_to_post", json={
-            "parent_post": created_post,
-            "attached_user": reddit_user
-        })
-        attached_user_respone.raise_for_status()
-        attached_response: RedditPostCreationResult = attached_user_respone.json()
-        logger.info(f"Attached user to created post {attached_response}")
-        return attached_response
-    except requests.HTTPError as e:
-        logger.error(
-            f"""Unable to attach reddit user to created post - {str(e)} \n
-            - {attached_user_respone.content} \n
-            - request object: {attached_response} 
-        """)
-        return None
-
 def attach_reddit_post_comments(attached_comment_dict: RedditCommentAttachmentDict, secrets: Secrets) -> RedditCommentAttachmentDict | None:
     
     try:
-        attached_comment_response = requests.post(f"{secrets['neo4j_url']}/v1/reddit/append_comments", json=attached_comment_dict)
+        attached_comment_response = requests.post(f"{secrets['neo4j_url']}/v1/api/run_query", json=attached_comment_dict)
         attached_comment_response.raise_for_status()
         attached_comments: RedditCommentAttachmentDict = attached_comment_response.json()
         return attached_comments
@@ -313,11 +378,11 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     
     posts_to_ingest: list[RedditPostDict] = []
 
-    author_associated_w_posts: dict[str, RedditPostDict] = {}
+    author_associated_w_posts: dict[str, RedditUserDict] = {}
     for post_element in all_posts_on_page:
         post_dict: RedditPostDict = get_post_dict_from_element(post_element)
         pprint.pprint(post_dict)
-        author_dict: RedditAuthorDict = get_author_dict_from_element(post_element)
+        author_dict: RedditUserDict = get_author_dict_from_element(post_element)
         author_associated_w_posts[post_dict['id']] = author_dict
 
         posts_to_ingest.append(post_dict)
@@ -325,14 +390,14 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     logger.info(f"Found a total of {len(posts_to_ingest)} posts from page {page_url}")
 
     try:
-        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/reddit/check_posts_exists", params={'reddit_post_ids': ",".join([post['id']for post in posts_to_ingest])})
+        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/api/exists", params={'post_ids': ",".join([post['id']for post in posts_to_ingest])})
         unique_post_response.raise_for_status()
         unique_post_json: list[dict] = unique_post_response.json()
     except requests.HTTPError as exception:
         logger.exception(f"Error in checking existing reddit posts from API {exception}")
         return
 
-    duplicate_ids: list[str] = [post["id"] for post in unique_post_json if post['post_exists'] == True]
+    duplicate_ids: list[str] = [post["id"] for post in unique_post_json if post['exists'] == True]
     unique_posts: list[RedditPostDict] = [post for post in posts_to_ingest if post['id'] not in duplicate_ids]
     logger.info(f"Found {len(unique_posts)} unique posts that are not in the reddit database")
 
@@ -394,24 +459,24 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         if post_creation_response is None:
             logger.error(f"Error in creating post for {post['id']}. Post was not added to the database")
             return
-
+        
         logger.info(f"Extracting comments from json post")
         reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream)
         
-        logger.info(f"Making request to API to attach reddit comments to post {reddit_comments_dict['reddit_post']['id']}")
+        logger.info(f"Making request to API to attach reddit comments to post. Generated json request with {len(reddit_comments_dict)} items")
         post_comment_attachment_response: RedditCommentAttachmentDict | None = attach_reddit_post_comments(reddit_comments_dict, secrets=secrets)
         if post_comment_attachment_response is None:
-            logger.error(f"Error in attaching comments to post {reddit_comments_dict['reddit_post']['id']}")
+            logger.error(f"Error in attaching comments to post")
             return
 
         logger.info(f"Created and attached reddit post and user \n  - response: {post_creation_response}")
-
+        
     if next_button_url is None:
         logger.info(f"next url for page {page_url} was extracted to be None. Exiting recursive call")
         return 
 
     logger.info(f"next url for page {page_url} extracted as {next_button_url} - continuing to call recursively")
-
+    #TODO: Duplicate quote values for date cypher query
     recursive_insert_raw_reddit_post(
         driver=driver, 
         page_url=next_button_url,

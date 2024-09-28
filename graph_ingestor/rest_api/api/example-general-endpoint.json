@@ -1,0 +1,36 @@
+[
+    {
+        "type":"node",
+        "query_type": "MATCH",
+        "labels": ["Entity", "Post", "Reddit"],
+        "properties": {
+            "id":"2b0a79f0-59eb-4ac8-b880-c7887de130cd",
+            "url": "https://www.reddit.com/r/CombatFootage/comments/1fm8edl/israeli_air_strike_in_lebanon_causes_massive/",
+            "title": "Israeli air strike in Lebanon causes massive shockwave",
+            "static_root_url":"2b0a79f0-59eb-4ac8-b880-c7887de130cd/",
+            "published_date": "2024-09-21",
+            "static_downloaded": false,
+            "static_file_type": null
+        }
+    },
+    {
+        "type":"node",
+        "query_type":"MATCH",
+        "labels": ["Date"],
+        "properties": {
+            "id":"227eb496-b67a-45d8-8654-ddeff268422a",
+            "day":"2024-09-21"
+        }
+    },
+    {
+        "type":"edge",
+        "connection":{
+            "from": "2b0a79f0-59eb-4ac8-b880-c7887de130cd",
+            "to": "227eb496-b67a-45d8-8654-ddeff268422a"
+        },
+        "labels": ["EXTRACTED"],
+        "properties": {
+            "day": "2024-09-21"
+        }
+    }
+]

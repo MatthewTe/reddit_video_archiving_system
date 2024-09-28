@@ -9,6 +9,11 @@ import (
 
 func main() {
 
+	args := os.Args
+	envFilePath := args[1]
+
+	loadEnvVariablesFromFile(envFilePath)
+
 	router := GenerateServerMux()
 
 	// Adding Middleware:
