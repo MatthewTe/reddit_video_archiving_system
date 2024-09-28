@@ -1,5 +1,6 @@
 from loguru import logger
 import pandas as pd 
+from datetime import datetime
 import uuid
 
 
@@ -41,6 +42,7 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
         associated_author = extract_author_from_json(comment_data)
 
         comment_full_id: str = comment_data["id"]
+        comment_node_datetime_obj = pd.to_datetime(int(comment_data['created_utc']), utc=True, unit="s")
         comment_node = {
             "type":"node",
             "query_type":"MERGE",
@@ -48,7 +50,19 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
             "properties": {
                 "id": comment_full_id,
                 "body": comment_data["body"],
-                "datetime": pd.to_datetime(int(comment_data['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
+                "datetime": comment_node_datetime_obj.strftime("%Y-%m-%dT%H:%M:%SZ")
+            }
+        }
+
+        post_day_str: str = comment_node_datetime_obj.strftime("%Y-%m-%d").replace('"', '')
+        day_date_id = str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str))
+        day_node = {
+            "type":"node",
+            "query_type":"MERGE",
+            "labels":["Date"],
+            "properties": {
+                "id": day_date_id,
+                "day": post_day_str
             }
         }
 
@@ -74,6 +88,17 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
                 "datetime": pd.to_datetime(int(comment_data['created_utc']), utc=True, unit="s").strftime("%Y-%m-%dT%H:%M:%SZ")
             }
         }
+
+        comment_to_day_edge = {
+            "type":"edge",
+            "labels": ["POSTED"],
+            "connection": {
+                "from": comment_full_id,
+                "to": day_date_id
+            },
+            "properties": {}
+        }
+
         comment_to_post_edge = {
             "type":"edge",
             "labels":["COMMENTED_ON"],
@@ -87,7 +112,9 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
         }
         output_lst.append(comment_node)
         output_lst.append(author_node)
+        output_lst.append(day_node)
         output_lst.append(author_post_comment_edge)
+        output_lst.append(comment_to_day_edge)
         output_lst.append(comment_to_post_edge)
 
         # If this is a recursive call that has provided a parent comment node (it is a reply) connect the current comment to the parent comment:
