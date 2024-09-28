@@ -2,7 +2,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: minio-for-testing
+    container_name: prod-minio
     env_file:
       - infra-prod.env
     ports:
@@ -14,7 +14,7 @@ services:
 
   neo4j:
     image: neo4j:latest
-    container_name: neo4j-for-testing
+    container_name: prod-neoj4
     ports:
       - "7474:7474"
       - "7687:7687"

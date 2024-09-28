@@ -5,6 +5,7 @@ services:
     ports:
       - "7474:7474"
       - "7687:7687"
+    environment:
     env_file:
       - infra-testing.env
 

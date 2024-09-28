@@ -91,7 +91,7 @@ def recursively_build_comment_creation_lst(output_lst: list[dict], post, comment
 
         comment_to_day_edge = {
             "type":"edge",
-            "labels": ["POSTED"],
+            "labels": ["POSTED_ON"],
             "connection": {
                 "from": comment_full_id,
                 "to": day_date_id
