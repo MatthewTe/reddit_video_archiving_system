@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/MatthewTe/reddit_video_archiving_system/graph_ingestor/rest_api/api"
@@ -13,9 +14,9 @@ import (
 func HandleCheckIfNodesExist(w http.ResponseWriter, r *http.Request) {
 
 	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
-		URI:      "neo4j://localhost:7687",
-		User:     "neo4j",
-		Password: "test_password",
+		URI:      os.Getenv("NEO4J_URI"),
+		User:     os.Getenv("NEO4J_USER"),
+		Password: os.Getenv("NEO4J_PASSWORD"),
 	}
 	var ctx context.Context = context.Background()
 
@@ -47,9 +48,9 @@ func HandleNodeEdgeCreationRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
-		URI:      "neo4j://localhost:7687",
-		User:     "neo4j",
-		Password: "test_password",
+		URI:      os.Getenv("NEO4J_URI"),
+		User:     os.Getenv("NEO4J_USER"),
+		Password: os.Getenv("NEO4J_PASSWORD"),
 	}
 	var ctx context.Context = context.Background()
 
