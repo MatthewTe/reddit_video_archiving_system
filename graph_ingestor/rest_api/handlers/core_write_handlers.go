@@ -14,7 +14,7 @@ import (
 func HandleCheckIfNodesExist(w http.ResponseWriter, r *http.Request) {
 
 	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
-		URI:      os.Getenv("NEO4J_URI"),
+		URI:      os.Getenv("SERVER_NEO4J_URI"),
 		User:     os.Getenv("NEO4J_USER"),
 		Password: os.Getenv("NEO4J_PASSWORD"),
 	}
@@ -48,7 +48,7 @@ func HandleNodeEdgeCreationRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
-		URI:      os.Getenv("NEO4J_URI"),
+		URI:      os.Getenv("SERVER_NEO4J_URI"),
 		User:     os.Getenv("NEO4J_USER"),
 		Password: os.Getenv("NEO4J_PASSWORD"),
 	}
