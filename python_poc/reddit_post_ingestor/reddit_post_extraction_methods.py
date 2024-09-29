@@ -4,7 +4,7 @@ import pandas as pd
 import json
 import requests
 import io
-import sys
+import random
 import pprint
 import time
 import base64
@@ -120,7 +120,7 @@ def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) 
     
 def get_post_json(driver, url) -> io.BytesIO | None:
 
-    time.sleep(1.5)
+    time.sleep(random.uniform(1.5, 3.5))
 
     try:
 
@@ -131,8 +131,8 @@ def get_post_json(driver, url) -> io.BytesIO | None:
 
         json_bytes_stream = io.BytesIO()
         json_bytes_stream.write(json_dict.encode())
-
-        time.sleep(1.5)
+        
+        time.sleep(random.uniform(1.5, 3.5))
 
         return json_bytes_stream
 
@@ -149,7 +149,7 @@ def take_post_screenshot(driver, url) -> bytes:
         driver.get(url)
         driver.implicitly_wait(4000)
 
-        time.sleep(5)
+        time.sleep(random.randint(2 ,5))
 
         screenshot_base64 = driver.get_screenshot_as_base64()
         screenshot_bytes: bytes = base64.b64decode(screenshot_base64)
@@ -352,7 +352,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         login_button = driver.find_element(By.XPATH, "//a[@class='login-required login-link']")
         login_button.click()
 
-        time.sleep(2)
+        time.sleep(random.randint(1, 3))
 
         login_input = driver.find_element(By.ID, "login-username")
         password_input = driver.find_element(By.ID, "login-password")
@@ -362,7 +362,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
 
         input("Press any key to resume...")
 
-    time.sleep(5)
+    time.sleep(random.randint(3, 5))
 
     posts_site_table = driver.find_element(By.ID, "siteTable")
 

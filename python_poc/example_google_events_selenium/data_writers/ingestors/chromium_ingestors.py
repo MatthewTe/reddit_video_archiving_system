@@ -3,6 +3,7 @@ from selenium import webdriver
 import sqlalchemy as sa
 import datetime
 import uuid
+import random
 import time
 from loguru import logger
 import pandas as pd
@@ -169,14 +170,14 @@ def ingest_search_results(
 
                 insert_search_query_result_sql(db_engine, search_query_result_insertion_dict)
                 
-                time.sleep(1)
+                time.sleep(random.randint(1, 3))
 
             except Exception as e:
                 try:
                     logger.error(f"Error in {title} {e.with_traceback(None)}")
                 except Exception as e:
                     logger.error(f"Error in processing article completley: {str(e.with_traceback(None))}")
-                time.sleep(1)
+                time.sleep(random.randint(1, 3))
                 continue
 
         all_search_results.append(pd.DataFrame.from_dict(search_results)) 

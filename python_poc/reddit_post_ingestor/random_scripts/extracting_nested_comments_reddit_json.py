@@ -3,6 +3,7 @@ from loguru import logger
 import pandas as pd
 import pprint
 import uuid
+import random
 import time
 import requests
 
@@ -51,13 +52,13 @@ def recursively_pack_comments(comment_json, reddit_url, use_driver_extract_addit
             driver.implicitly_wait(3000)
             driver.get(additional_comments_url)
 
-            time.sleep(0.5)
+            time.sleep(random.uniform(0.04, 0.65))
 
             json_element = driver.find_element(By.XPATH, "/html/body/pre")
             json_dict_str =  json_element.get_attribute("innerText")
             additional_full_comment_json = json.loads(json_dict_str)
 
-            time.sleep(0.5)
+            time.sleep(random.uniform(0.04, 0.65))
 
             driver.quit()
 

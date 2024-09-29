@@ -5,6 +5,7 @@ import sys
 import time
 import json
 import io
+import random
 import pandas as pd
 
 driver = webdriver.Chrome()
@@ -12,7 +13,7 @@ driver.implicitly_wait(30)
 
 driver.get("https://www.reddit.com/r/CombatFootage/comments/1fh996t/airstrike_on_russian_positions_in_vesoloe_kursk/.json")
 
-time.sleep(2)
+time.sleep(random.randint(1, 3))
 
 json_element = driver.find_element(By.XPATH, "/html/body/pre")
 
