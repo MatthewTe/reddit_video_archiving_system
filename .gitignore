@@ -53,3 +53,5 @@ vendor/
 
 *./build
 *prod.env
+
+*db.sqlite3

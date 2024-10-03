@@ -9,6 +9,8 @@ class Secrets(TypedDict):
     neo4j_url: str
     reddit_username: str
     reddit_password: str
+    neo4j_read_url: str
+    neo4j_auth: str
 
 def get_secrets(env_path) -> Secrets:
 
@@ -20,5 +22,7 @@ def get_secrets(env_path) -> Secrets:
         "minio_secret_key": os.environ.get("MINIO_SECRET_KEY"),
         "neo4j_url": os.environ.get("NEO4J_URL"),
         "reddit_username": os.environ.get("REDDIT_USERNAME"),
-        "reddit_password": os.environ.get("REDDIT_PASSWORD")
+        "reddit_password": os.environ.get("REDDIT_PASSWORD"),
+        "neo4j_read_url": os.environ.get("NEO4J_READ_URL"),
+        "neo4j_auth": os.environ.get("NEO4J_AUTH")
     }
