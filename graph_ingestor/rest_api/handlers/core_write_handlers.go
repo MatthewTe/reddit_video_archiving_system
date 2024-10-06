@@ -71,3 +71,36 @@ func HandleNodeEdgeCreationRequest(w http.ResponseWriter, r *http.Request) {
 	w.Write(queryResponseData)
 
 }
+
+func HandleNodeEdgeEditRequest(w http.ResponseWriter, r *http.Request) {
+
+	buff, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Unable to read all bytes from request body", http.StatusBadRequest)
+		return
+	}
+
+	var env api.Neo4JEnvironment = api.Neo4JEnvironment{
+		URI:      os.Getenv("SERVER_NEO4J_URI"),
+		User:     os.Getenv("SERVER_NEO4J_USER"),
+		Password: os.Getenv("SERVER_NEO4J_PASSWORD"),
+	}
+	var ctx context.Context = context.Background()
+
+	queryResponseMap, err := api.CoreUpdateGraphData(buff, env, ctx)
+	if err != nil {
+		http.Error(w, "Error in completing the cypher query "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	queryRespopnseData, err := json.Marshal(queryResponseMap)
+	if err != nil {
+		http.Error(w, "Error in marshaling the response data", http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(queryRespopnseData)
+
+}
