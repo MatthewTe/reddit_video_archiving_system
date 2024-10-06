@@ -180,7 +180,7 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 					count += 1
 				}
 				edgeCypherQueryBuilder.WriteString("}]->(m)\nRETURN c")
-				log.Print(edgeCypherQueryBuilder.String())
+
 				// Putting the to and from params in the properties map so I can pass it to the actualy cypher query:
 				maps.Copy(edge.Properties, map[string]any{"to": edge.Connection.To, "from": edge.Connection.From})
 				edgeQueryResponse, err := tx.Run(ctx, edgeCypherQueryBuilder.String(), edge.Properties)
