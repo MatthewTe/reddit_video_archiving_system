@@ -3,7 +3,12 @@ import neo4j
 import json
 import argparse
 import typing
+import pprint
+import requests
 import io
+import time
+import random
+import os
 from minio import Minio
 from loguru import logger
 import uuid
@@ -54,7 +59,9 @@ if __name__ == "__main__":
     )
     BUCKET_NAME = "reddit-posts"
        
-    for video_post in all_video_posts[0:1]:
+    for video_post in all_video_posts:
+
+        time.sleep(random.randint(2, 4))
 
         logger.info(f"Starting to parse reddit video from node with id {video_post['post_id']}")
 
@@ -189,12 +196,49 @@ if __name__ == "__main__":
                         "connection": {
                             "from":neo4j_node_id,
                             "to": video_post['post_id']
+                        },
+                        "properties": {}
+                    },
+                    {
+                        "type":"edge",
+                        "labels": ['EXTRACTED_FROM'],
+                        "connection": {
+                            "from": video_post['post_id'],
+                            "to": neo4j_node_id
+                        },
+                        "properties": {}
+                    }
+                ]
+
+                node_created_response = requests.post(
+                    f"{os.environ.get('NEO4J_URL')}/v1/api/run_query", 
+                    json=video_node_w_connection
+                )
+                node_created_response.raise_for_status()
+                logger.info("Created the video node and the edges for the Graph Database")
+                pprint.pprint(node_created_response.json())              
+
+                update_video_node = [
+                    {
+                        "type":"node",
+                        "query_type":"MATCH",
+                        "labels": ["Reddit", "Post", "Entity"],
+                        "match_properties": {
+                            "id": video_post["post_id"]
+                        },
+                        "set_properties": {
+                            "static_downloaded": True
                         }
                     }
                 ]
 
-                # TODO: Add logic to make requests and updates to the graph database
-
+                node_updated_response = requests.post(
+                    f"{os.environ.get('NEO4J_URL')}/v1/api/run_update_query",
+                    json=update_video_node
+                )
+                node_updated_response.raise_for_status()
+                logger.info(f"Updated the Reddit node to {video_post['post_id']}. Setting static file to True")
+                pprint.pprint(node_updated_response.json())
                 
         except Exception as e:
             logger.error(str(e.with_traceback(None)))

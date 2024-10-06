@@ -1,8 +1,9 @@
 import typing
 import io
 import requests
+import time
+import random
 import xml.etree.ElementTree as ET
-
 from loguru import logger
 
 class RedditVideoInfoDict(typing.TypedDict):
@@ -98,8 +99,12 @@ def parse_video_from_mpd_document(reddit_video_info: RedditVideoInfoDict, reddit
                         if reddit_post_base_url is not None or video_root_url is not None:
                             video_url = f"{reddit_post_base_url}/{video_root_url}"
                             logger.info(f"Making request to get video from {video_url}")
+
+
+                            time.sleep(random.randint(1, 3))
                             video_response = requests.get(video_url)
                             video_response.raise_for_status()
+                            time.sleep(random.randint(1, 3))
 
                             video_stream = io.BytesIO(initial_bytes=video_response.content)
                             logger.info(f"Extracted video file from reddit with {len(video_response.content)} bytes")
@@ -133,9 +138,12 @@ def parse_video_from_mpd_document(reddit_video_info: RedditVideoInfoDict, reddit
                         if reddit_post_base_url is not None or audio_root_url is not None:
                             audio_full_url = f"{reddit_post_base_url}/{audio_root_url}"
                             logger.info(f"Making requests to get audio from {audio_full_url}")
+                            
+                            time.sleep(random.randint(1, 3))
                             audio_response = requests.get(audio_full_url)
                             audio_response.raise_for_status()
-                            
+                            time.sleep(random.randint(1, 3))
+
                             audio_stream = io.BytesIO(initial_bytes=audio_response.content)
                             logger.info(f"Extracted audio file from reddit with {len(audio_response.content)} bytes")
                             parsed_result['audio_periods'][int(period.attrib['id'])] = {
