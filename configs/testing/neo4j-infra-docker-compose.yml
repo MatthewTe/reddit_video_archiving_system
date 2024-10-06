@@ -7,6 +7,8 @@ services:
       - "7687:7687"
     env_file:
       - infra-testing.env
+    volumes:
+      - neo4j_infra_volume:/var/lib/neo4j
 
   minio:
     image: minio/minio:latest
@@ -17,3 +19,7 @@ services:
       - "9000:9000"    
       - "9001:9001"
     command: server /data --console-address ":9001"
+
+volumes:
+  neo4j_infra_volume:
+ 
