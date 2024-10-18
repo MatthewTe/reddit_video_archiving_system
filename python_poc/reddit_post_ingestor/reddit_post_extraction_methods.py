@@ -74,14 +74,23 @@ class RedditUserDict(TypedDict):
 
 def get_author_dict_from_element(post_element) -> RedditUserDict:
 
-    author_name = post_element.get_attribute("data-author")
-    author_full_name = post_element.get_attribute("data-author-fullname")
+    try:
+        author_name = post_element.get_attribute("data-author")
+        author_full_name = post_element.get_attribute("data-author-fullname")
 
-    reddit_user: RedditUserDict = {
-        "id": str(uuid.uuid3(uuid.NAMESPACE_URL, author_full_name)),
-        "author_name": author_name, 
-        "author_full_name": author_full_name
-    }
+        reddit_user: RedditUserDict = {
+            "id": str(uuid.uuid3(uuid.NAMESPACE_URL, author_full_name)),
+            "author_name": author_name, 
+            "author_full_name": author_full_name
+        }
+    except Exception as e:
+        logger.error(f"error in trying to extract author from post {str(e)}")
+
+        reddit_user: RedditUserDict = {
+            "id": str(uuid.uuid3(uuid.NAMESPACE_URL, "not_found")),
+            "author_full_name": "not_found",
+            "author_name": "not_found"
+        }
 
     return reddit_user
 
@@ -485,3 +494,42 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         login=False,
         secrets=secrets
     )
+
+
+def recursivley_insert_raw_reddit_post_from_search(driver: webdriver.Chrome, page_url: str, MINIO_CLIENT, BUCKET_NAME: str, secrets: Secrets, login: bool=False):
+    
+    driver.get(page_url)
+
+    driver.implicitly_wait(3000)
+
+    # Loging in:
+    if login:
+        login_button = driver.find_element(By.XPATH, "//a[@class='login-required login-link']")
+        login_button.click()
+
+        time.sleep(random.randint(1, 3))
+
+        login_input = driver.find_element(By.ID, "login-username")
+        password_input = driver.find_element(By.ID, "login-password")
+
+        login_input.send_keys(secrets['reddit_username'])
+        password_input.send_keys(secrets['reddit_password'])
+
+        input("Press any key to resume...")
+
+
+
+    time.sleep(random.randint(3, 5))
+
+    posts_site_table = driver.find_element(By.ID, "siteTable")
+
+    next_button_results: list = driver.find_elements(By.XPATH, "//span[@class='next-button']")
+    if len(next_button_results) == 0:
+        next_button_url = None
+    else:
+        next_button_url = next_button_results[0].find_element(By.TAG_NAME, "a").get_attribute("href")
+
+    logger.info(f"Next url for next page: {next_button_url}")
+
+    all_posts_on_page = posts_site_table.find_elements(By.XPATH, "//div[@data-context='listing']")
+ 

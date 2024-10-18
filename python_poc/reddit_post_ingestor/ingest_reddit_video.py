@@ -22,7 +22,6 @@ def extract_reddit_posts(tx):
         MATCH (n:Reddit:Post 
             {static_downloaded: false, static_file_type: 'video'})-[:EXTRACTED]->(p:Reddit:Json) 
         RETURN n, p
-        LIMIT 1
     """)
 
     json_posts = []
