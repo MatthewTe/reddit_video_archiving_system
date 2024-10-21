@@ -4,3 +4,6 @@
 [submodule "geoserver"]
 	path = geoserver
 	url = https://github.com/geoserver/geoserver
+[submodule "label-studio"]
+	path = label-studio
+	url = https://github.com/HumanSignal/label-studio
