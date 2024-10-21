@@ -1,3 +1,6 @@
 [submodule "docs/themes/PaperMod"]
 	path = docs/themes/PaperMod
 	url = https://github.com/adityatelange/hugo-PaperMod.git
+[submodule "geoserver"]
+	path = geoserver
+	url = https://github.com/geoserver/geoserver

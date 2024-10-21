@@ -55,3 +55,4 @@ vendor/
 *prod.env
 
 *db.sqlite3
+configs/geoserver/data
