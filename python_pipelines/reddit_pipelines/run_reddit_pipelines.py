@@ -54,6 +54,7 @@ for subreddit in reddit_pipeline_configs:
             page_url=f"https://old.reddit.com/r/{subreddit['Subreddit']}/",
             MINIO_CLIENT=MINIO_CLIENT,
             BUCKET_NAME=BUCKET_NAME,
+            inserted_reddit_ids=inserted_reddit_post_ids,
             login=True,
             secrets=secrets
         )
