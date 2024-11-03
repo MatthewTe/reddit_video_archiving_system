@@ -1,0 +1,17 @@
+{
+    "pipelines": {
+        "reddit": [
+            {
+                "Subreddit":"CombatFootage",
+                "Operations":["Ingest_Videos"]
+            }
+        ],
+        "youtube": [
+            {
+                "Playlist_Id":"",
+                "Track_Videos":true,
+                "Operations":["Ingest_Posts", "Store_Static", "Transcribe"]
+            }
+        ]
+    }
+}

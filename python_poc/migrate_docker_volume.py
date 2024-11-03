@@ -40,3 +40,6 @@ docker run --rm \
 '''
 
 print(docker_backup_cmd)
+
+# Copy volume through SSH:
+# ssh user@remote tar czf - /my/directory/ > /my/local/destination/archive.tgz
