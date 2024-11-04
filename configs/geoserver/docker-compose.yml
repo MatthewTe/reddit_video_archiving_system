@@ -1,8 +1,0 @@
-services: 
-  geoserver:
-    image: docker.osgeo.org/geoserver:2.26.0
-    ports:
-      - 8080:8080
-    volumes:
-      - ./data/:/opt/geoserver_data/data
-    

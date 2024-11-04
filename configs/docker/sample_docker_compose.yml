@@ -1,0 +1,53 @@
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: prod-minio
+    env_file:
+      - infra-prod.env
+    ports:
+      - "9000:9000"    
+      - "9001:9001"
+    volumes:
+      - minio_prod_data:/data
+    command: server /data --console-address ":9001"
+
+  neo4j:
+    image: neo4j:latest
+    container_name: prod-neoj4
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    env_file:
+      - infra-prod.env
+    volumes:
+      - neo4j_prod_volume:/var/lib/neo4j
+  
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: cr.weaviate.io/semitechnologies/weaviate:1.27.1
+    ports:
+    - 8081:8080
+    - 50051:50051
+    volumes:
+    - weaviate_data:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_API_BASED_MODULES: 'true'
+      CLUSTER_HOSTNAME: 'node1'
+
+volumes:
+  weaviate_data:
+  neo4j_prod_volume:
+  minio_prod_data:
+    driver: local
