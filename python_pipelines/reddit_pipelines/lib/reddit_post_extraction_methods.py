@@ -399,9 +399,13 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     logger.info(f"Found a total of {len(posts_to_ingest)} posts from page {page_url}")
 
     try:
-        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/api/exists", params={'post_ids': ",".join([post['id']for post in posts_to_ingest])})
+        current_post_ids = ",".join([post['id']for post in posts_to_ingest])
+        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/api/exists", params={'post_ids': current_post_ids})
         unique_post_response.raise_for_status()
         unique_post_json: list[dict] = unique_post_response.json()
+        logger.info(f"Response from unique query: \n")
+        pprint.pprint(unique_post_json)
+
     except requests.HTTPError as exception:
         logger.exception(f"Error in checking existing reddit posts from API {exception}")
         return
@@ -480,13 +484,13 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
 
         logger.info(f"Created and attached reddit post and user \n  - response: {post_creation_response}")
         
+        inserted_reddit_ids.append(post["id"])
+
     if next_button_url is None:
         logger.info(f"next url for page {page_url} was extracted to be None. Exiting recursive call")
         return 
 
     logger.info(f"next url for page {page_url} extracted as {next_button_url} - continuing to call recursively")
-
-    inserted_reddit_ids.append(post["id"])
 
     recursive_insert_raw_reddit_post(
         driver=driver, 

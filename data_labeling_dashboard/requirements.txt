@@ -1,0 +1,8 @@
+dash
+pandas
+dash-deck
+neo4j
+python-dotenv
+h3
+dash-bootstrap-components
+minio

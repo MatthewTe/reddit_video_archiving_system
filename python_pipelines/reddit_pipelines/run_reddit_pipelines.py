@@ -43,7 +43,7 @@ for subreddit in reddit_pipeline_configs:
     driver = webdriver.Chrome()
     driver.implicitly_wait(30)
 
-    inserted_reddit_post_ids: list[str]
+    inserted_reddit_post_ids: list[str] = []
 
     if "Ingest_Posts" in subreddit["Operations"]:
 

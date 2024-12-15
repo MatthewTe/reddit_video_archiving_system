@@ -3,7 +3,7 @@
         "reddit": [
             {
                 "Subreddit":"CombatFootage",
-                "Operations":["Ingest_Videos"]
+                "Operations":["Ingest_Posts", "Ingest_Videos"]
             }
         ],
         "youtube": [
