@@ -56,3 +56,4 @@ vendor/
 
 *db.sqlite3
 configs/geoserver/data
+*infra-testing.env
