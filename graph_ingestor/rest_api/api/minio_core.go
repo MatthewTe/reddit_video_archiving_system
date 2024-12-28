@@ -17,9 +17,9 @@ type MinioEnvironment struct {
 }
 
 type MinioBlobObject struct {
-	FileName     string
-	FileSize     int64
-	LastModified string
+	FileName     string `json:"file_name"`
+	FileSize     int64  `json:"file_size"`
+	LastModified string `json:"list_modified"`
 }
 
 func ListBlobsFromFilePath(prefixPath string, bucketName string, env MinioEnvironment, ctx context.Context) ([]MinioBlobObject, error) {
@@ -34,10 +34,19 @@ func ListBlobsFromFilePath(prefixPath string, bucketName string, env MinioEnviro
 		return nil, err
 	}
 
-	objectCh := minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
-		Prefix:    prefixPath,
-		Recursive: false,
-	})
+	var objectCh <-chan minio.ObjectInfo
+
+	if prefixPath == "" {
+		objectCh = minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+			// Prefix:    prefixPath,
+			Recursive: false,
+		})
+	} else {
+		objectCh = minioClient.ListObjects(ctx, bucketName, minio.ListObjectsOptions{
+			Prefix:    prefixPath,
+			Recursive: false,
+		})
+	}
 
 	var minioItems []MinioBlobObject
 	for object := range objectCh {
