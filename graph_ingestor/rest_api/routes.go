@@ -15,5 +15,9 @@ func GenerateServerMux() *http.ServeMux {
 	router.HandleFunc("POST /v1/api/run_update_query", handlers.HandleNodeEdgeEditRequest)
 	router.HandleFunc("GET /v1/api/exists", handlers.HandleCheckIfNodesExist)
 
+	router.HandleFunc("GET /v1/api/minio/buckets", handlers.HandleListMinioBuckets)
+	router.HandleFunc("GET /v1/api/minio/bucket_access_policy", handlers.HandleGetBucketAccessPolicy)
+	router.HandleFunc("GET /v1/api/minio/list_objects", handlers.HandleGetAllObjectInBucket)
+
 	return router
 }

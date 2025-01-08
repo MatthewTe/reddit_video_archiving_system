@@ -14,3 +14,8 @@ typing_extensions==4.9.0
 urllib3==2.2.2
 websocket-client==1.8.0
 wsproto==1.2.0
+pyarrow
+geopandas
+s3fs
+h3
+matplotlib
