@@ -31,7 +31,8 @@ for i in range(0, 20):
         "num_rows": len(gdf),
         "path": "sentinel-2-data/sentinel_2_metadata/venezuela_h3_index.parquet",
         "query_time": end_time - start_time,
-        "bbox": None
+        "bbox": None,
+        "area": gdf.geometry.area
     })
 
     print(f"Query {i} for full dataset took {end_time - start_time}")
@@ -41,7 +42,7 @@ for i in range(0, 20):
     gdf = gpd.read_parquet(
         "sentinel-2-data/sentinel_2_metadata/venezuela_h3_index.parquet",
         filesystem=fs,
-        bbox=(-64.739342,10.052167,-64.646301,10.142133)
+        bbox=(10.052167, -64.739342, 10.142133, -64.646301)
     )
     end_time = time.time()
 
@@ -49,7 +50,8 @@ for i in range(0, 20):
         "num_rows": len(gdf),
         "path": "sentinel-2-data/sentinel_2_metadata/venezuela_h3_index.parquet",
         "query_time": end_time - start_time,
-        "bbox": (-64.739342,10.052167,-64.646301,10.142133)
+        "bbox": (10.052167, -64.739342, 10.142133, -64.646301),
+        "area": gdf.geometry.area
     })
 
     print(f"Query {i} for bbox dataset took {end_time - start_time}")

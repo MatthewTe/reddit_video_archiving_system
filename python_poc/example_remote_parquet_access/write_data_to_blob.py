@@ -3,8 +3,19 @@ import geopandas as gpd
 import time
 import shapely
 import h3
+import sys
+import pyarrow as pa
+import pyarrow.feather as feather
+import pyarrow.parquet as pq
 from multiprocessing import Pool
 import matplotlib.pyplot as plt
+
+road_table = pq.read_table(
+    "/Users/matthewteelucksingh/Repos/reddit_video_archiving_system/python_poc/example_remote_parquet_access/all_roads_tt.parquet", 
+    columns=['geometry', 'name']
+)
+feather.write_feather(road_table, "all_roads_tt.feather", compression="uncompressed")
+sys.exit(0)
 
 fs = s3fs.S3FileSystem(
     anon=False,
@@ -15,6 +26,12 @@ fs = s3fs.S3FileSystem(
         "aws_secret_access_key": "test_secret_key"
     }
 )
+
+gdf: gpd.GeoDataFrame = gpd.read_file("/Users/matthewteelucksingh/Downloads/hotosm_tto_roads_lines_shp/hotosm_tto_roads_lines_shp.shp")
+gdf.to_parquet("test-bucket/all_roads_tt.parquet", write_covering_bbox=True, geometry_encoding="geoarrow", filesystem=fs)
+print(gdf)
+
+sys.exit(0)
 #gdf = gpd.read_parquet(
 #    'sentinel-2-data/sentinel_2_metadata/uploaded_sentinel_2_footprints.parquet',
 #    filesystem=fs
