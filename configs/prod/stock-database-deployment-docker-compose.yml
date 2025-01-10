@@ -22,6 +22,13 @@ services:
       - infra-prod.env
     volumes:
       - neo4j_prod_volume:/var/lib/neo4j
+  
+  graph_ingestor:
+    build: 
+      context: ../../graph_ingestor
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
 
 volumes:
   neo4j_prod_volume:
