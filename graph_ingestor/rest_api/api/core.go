@@ -107,6 +107,19 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 						} else {
 							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: datetime($%s), \n", propertyName, propertyName))
 						}
+
+					case "geometry":
+
+						if count == numProperties {
+							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: point({latitude: toFloat($latitude), longitude: toFloat($longitude)}) \n", propertyName))
+						} else {
+							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: point({latitude: toFloat($latitude), longitude: toFloat($longitude)}), \n", propertyName))
+						}
+
+						// Flattening the geometry info by adding it to the properties map directly instead of nested dict:
+						node.Properties["latitude"] = node.Properties[propertyName].(map[string]interface{})["latitude"]
+						node.Properties["longitude"] = node.Properties[propertyName].(map[string]interface{})["longitude"]
+
 					default:
 						if count == numProperties {
 							nodeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: $%s \n", propertyName, propertyName))
@@ -117,7 +130,7 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 					count += 1
 				}
 				nodeCypherQueryBuilder.WriteString("})\nRETURN n")
-				//log.Print(nodeCypherQueryBuilder.String())
+				fmt.Print(nodeCypherQueryBuilder.String())
 
 				nodeQueryResponse, err := tx.Run(ctx, nodeCypherQueryBuilder.String(), node.Properties)
 				if err != nil {
@@ -170,16 +183,29 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s),", propertyName, propertyName))
 						}
 
+					case "geometry":
+						if count == numProperties {
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: point({latitude: toFloat($latitude), longitude: toFloat($longitude)}) \n", propertyName))
+						} else {
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("\t %s: point({latitude: toFloat($latitude), longitude: toFloat($longitude)}), \n", propertyName))
+						}
+
+						// Flattening the geometry info by adding it to the properties map directly instead of nested dict:
+						edge.Properties["latitude"] = edge.Properties[propertyName].(map[string]interface{})["latitude"]
+						edge.Properties["longitude"] = edge.Properties[propertyName].(map[string]interface{})["longitude"]
+
 					default:
 						if count == numProperties {
 							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s", propertyName, propertyName))
 						} else {
 							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s,", propertyName, propertyName))
 						}
+
 					}
 					count += 1
 				}
 				edgeCypherQueryBuilder.WriteString("}]->(m)\nRETURN c")
+				fmt.Print(edgeCypherQueryBuilder.String())
 
 				// Putting the to and from params in the properties map so I can pass it to the actualy cypher query:
 				maps.Copy(edge.Properties, map[string]any{"to": edge.Connection.To, "from": edge.Connection.From})

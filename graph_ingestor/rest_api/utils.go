@@ -19,7 +19,7 @@ func loadEnvVariablesFromFile(filePath string) error {
 	for scanner.Scan() {
 
 		envFileSplit := strings.Split(scanner.Text(), "=")
-		fmt.Println(envFileSplit)
+		//fmt.Println(envFileSplit)
 		if len(envFileSplit) == 2 {
 			fmt.Printf("Loading environment variable: %s", envFileSplit[0])
 			os.Setenv(envFileSplit[0], envFileSplit[1])
