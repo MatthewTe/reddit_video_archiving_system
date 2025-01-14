@@ -172,15 +172,15 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 					// Ad-hoc edge query type casting done manually - will have to move this when it gets to unweidly:
 					case "date":
 						if count == numProperties {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s)", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s) ", propertyName, propertyName))
 						} else {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s),", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: date($%s), ", propertyName, propertyName))
 						}
 					case "datetime":
 						if count == numProperties {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s)", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s) ", propertyName, propertyName))
 						} else {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s),", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: datetime($%s), ", propertyName, propertyName))
 						}
 
 					case "geometry":
@@ -196,9 +196,9 @@ func CoreInsertGraphData(requestContent []byte, env Neo4JEnvironment, ctx contex
 
 					default:
 						if count == numProperties {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s ", propertyName, propertyName))
 						} else {
-							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s,", propertyName, propertyName))
+							edgeCypherQueryBuilder.WriteString(fmt.Sprintf("%s: $%s, ", propertyName, propertyName))
 						}
 
 					}
