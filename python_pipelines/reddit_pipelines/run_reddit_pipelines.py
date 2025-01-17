@@ -7,9 +7,10 @@ from datetime import datetime, timezone
 import pandas as pd
 import argparse
 from loguru import logger
+import json
 import sys
 
-from lib.reddit_post_extraction_methods import recursive_insert_raw_reddit_post
+from lib.restore_graph_data_from_blob import restore_reddit_post
 from lib.config import get_secrets, load_config_from_file, Secrets, RedditPipelineConfig
 from lib.ingest_reddit_video import ingest_all_video_data
 
@@ -37,30 +38,10 @@ if not found:
 else:
     logger.info("Bucket", BUCKET_NAME, "already exists")
 
-for subreddit in reddit_pipeline_configs: 
-    logger.info(f"Running ingestion pipeline for subreddit {subreddit['Subreddit']}")
+objects = MINIO_CLIENT.list_objects(BUCKET_NAME)
+for object in objects:
 
-    driver = webdriver.Chrome()
-    driver.implicitly_wait(30)
+    post_id = object.object_name.replace("/", "")
+    restore_reddit_post(post_id, BUCKET_NAME, MINIO_CLIENT, secrets)
 
-    inserted_reddit_post_ids: list[str] = []
-
-    if "Ingest_Posts" in subreddit["Operations"]:
-
-        logger.info(f"Ingesting Reddit Posts into Graph db:")
-
-        recursive_insert_raw_reddit_post(
-            driver=driver, 
-            page_url=f"https://old.reddit.com/r/{subreddit['Subreddit']}/",
-            MINIO_CLIENT=MINIO_CLIENT,
-            BUCKET_NAME=BUCKET_NAME,
-            inserted_reddit_ids=inserted_reddit_post_ids,
-            login=True,
-            secrets=secrets
-        )
-
-    if "Ingest_Videos" in subreddit["Operations"]:
-
-        logger.info(f"Running full static file ingestion for {len(inserted_reddit_post_ids)} video posts in the neo4j database")
-
-        ingest_all_video_data(secrets, inserted_reddit_post_ids)
+sys.exit(0)

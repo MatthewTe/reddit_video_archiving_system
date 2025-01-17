@@ -2,7 +2,7 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: prod-minio
+    container_name: prod-mini
     env_file:
       - infra-prod.env
     ports:

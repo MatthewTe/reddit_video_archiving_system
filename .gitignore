@@ -59,3 +59,4 @@ configs/geoserver/data
 *infra-testing.env
 
 *.venv
+node_modules

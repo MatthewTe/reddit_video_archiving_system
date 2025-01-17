@@ -3,6 +3,7 @@ import uuid
 import pandas as pd
 import json
 import requests
+import os
 import io
 import random
 import pprint
@@ -419,51 +420,40 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         logger.info("No unique posts found from reddit page. Exiting...")
         return
 
+    def folder_exists(bucket_name: str, folder_name: str) -> bool:
+        try:
+            # Add a trailing slash if it's not there
+            if not folder_name.endswith('/'):
+                folder_name += '/'
+            
+            # List objects with a prefix of the folder name
+            objects = MINIO_CLIENT.list_objects(bucket_name, prefix=folder_name, recursive=False)
+            for obj in objects:
+                # If any object starts with the folder name, it exists
+                return True
+            return False
+        except S3Error as e:
+            print(f"Error checking folder existence: {e}")
+            return False
+
     logger.info(f"Beginning to process unique posts")
     for post in unique_posts:
-
-        logger.info(f"Trying to take screenshot for {post['url']}")
-        screenshot_stream: io.BytesIO | None = take_post_screenshot(driver, post['url'])
-        if screenshot_stream is None:
-            logger.error(f"""Screenshot bytes stream returned as none with error. Not inserting post {post['id']} \n
-            - post {pprint.pprint(post)}
-            """)
-            continue
-
-        logger.info(f"Extracting json representation of post {post['url']}")
-        json_stream: io.BytesIO | None = get_post_json(driver, post["url"])
-        if json_stream is None:
-            logger.error(f"""json response bytes stream returned as none with error. Not inserting post {post['id']} \n
-            - post {pprint.pprint(post)}
-            """)
-            continue
-
-
-        uploaded_screenshot_filepath: str | None = insert_static_file_to_blob(
-            memory_buffer=screenshot_stream,
-            bucket_name=BUCKET_NAME,
-            full_filepath=post['screenshot_path'],
-            content_type="image/png",
-            minio_client=MINIO_CLIENT
-        )
-
-        uploaded_json_filepath: str | None = insert_static_file_to_blob(
-            memory_buffer=json_stream,
-            bucket_name=BUCKET_NAME,
-            full_filepath=post['json_path'],
-            content_type="application/json",
-            minio_client=MINIO_CLIENT
-        )
-
-        if uploaded_screenshot_filepath is None or uploaded_json_filepath is None:
-            logger.error(f"Uploaded screenshot or json filepath is None so there was an error in inserting a static file to blob")
-            continue
-        else:
-            logger.info(f"Sucessfully inserted screenshot and json to blob storage: \n - sreenshot: {uploaded_json_filepath} \n -json post: {uploaded_json_filepath}")
         
-        post['screenshot_path'] = uploaded_screenshot_filepath
-        post['json_path'] = uploaded_json_filepath
-        
+        blob_exists = folder_exists(BUCKET_NAME, f"{post['id']}/")
+        if not blob_exists:
+            logger.warning(f"File does not exist - not restoring. We are not ingesting new posts with this run")
+            continue
+        logger.warning(f"Folder Exists {blob_exists}")
+
+        logger.warning(f"Blob already exists streaming json")
+        # Grab the json file in minio blob as json_stream
+        json_response = MINIO_CLIENT.get_object(BUCKET_NAME, f"{post['id']}/post.json")
+        json_stream = io.BytesIO(json_response.read())
+
+        # Hardcode this - it should be set already:
+        post['screenshot_path'] = f"{post['id']}/screenshot.png"
+        post['json_path'] = f"{post['id']}/post.json"
+
         post_creation_response: RedditPostCreationResult | None = insert_reddit_post(
             post=post, 
             reddit_user=author_associated_w_posts[post['id']],
@@ -481,6 +471,79 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         if post_comment_attachment_response is None:
             logger.error(f"Error in attaching comments to post")
             return
+        
+        logger.warning(f"Inserting static file content for existing node {post['id']}")
+
+        try:
+            MINIO_CLIENT.stat_object(BUCKET_NAME, f"{post['id']}/Origin_DASH.mpd")
+            video_file_exists = True
+            logger.warning(f"{post['id']} is a video post")
+        except:
+            logger.warning(f"{post['id']} is NOT a video post")
+            video_file_exists =  False
+
+        if video_file_exists:
+            neo4j_node_id = str(uuid.uuid3(uuid.NAMESPACE_URL, f"{post['id']}/Origin_DASH.mpd"))
+            video_node_w_connection = [
+                {
+                    "type":"node",
+                    "query_type":"MERGE",
+                    "labels": ['Reddit', 'StaticFile', 'Video'],
+                    "properties": {
+                        "id": neo4j_node_id,
+                        "mpd_file": f"{post['id']}/Graph_DASH.mpd"
+                    }
+                },
+                {
+                    "type":"edge",
+                    "labels": ['CONTAINS'],
+                    "connection": {
+                        "from":neo4j_node_id,
+                        "to": post['id']
+                    },
+                    "properties": {}
+                },
+                {
+                    "type":"edge",
+                    "labels": ['EXTRACTED_FROM'],
+                    "connection": {
+                        "from": post['id'],
+                        "to": neo4j_node_id
+                    },
+                    "properties": {}
+                }
+            ]
+
+            node_created_response = requests.post(
+                f"{os.environ.get('NEO4J_URL')}/v1/api/run_query", 
+                json=video_node_w_connection
+            )
+            node_created_response.raise_for_status()
+            logger.info("Created the video node and the edges for the Graph Database")
+            pprint.pprint(node_created_response.json())              
+
+            update_video_node = [
+                {
+                    "type":"node",
+                    "query_type":"MATCH",
+                    "labels": ["Reddit", "Post", "Entity"],
+                    "match_properties": {
+                        "id": post["id"]
+                    },
+                    "set_properties": {
+                        "static_downloaded": True
+                    }
+                }
+            ]
+
+            node_updated_response = requests.post(
+                f"{os.environ.get('NEO4J_URL')}/v1/api/run_update_query",
+                json=update_video_node
+            )
+            node_updated_response.raise_for_status()
+            logger.info(f"Updated the Reddit node to {post['id']}. Setting static file to True")
+            pprint.pprint(node_updated_response.json())
+
 
         logger.info(f"Created and attached reddit post and user \n  - response: {post_creation_response}")
         
