@@ -21,7 +21,7 @@ services:
     env_file:
       - infra-prod.env
     volumes:
-      - neo4j_prod_volume:/var/lib/neo4j
+      - neo4j_prod_volume:/data
   
   graph_ingestor:
     build: 
@@ -33,4 +33,3 @@ services:
 volumes:
   neo4j_prod_volume:
   minio_prod_data:
-    driver: local

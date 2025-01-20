@@ -7,11 +7,14 @@ import io
 import random
 import pprint
 import time
+import pytz
 import base64
 from datetime import datetime
 from loguru import logger
 from minio import Minio
 from minio.error import S3Error
+from neo4j import GraphDatabase
+from neo4j.time import DateTime
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -198,138 +201,95 @@ class RedditPostCreationResult(TypedDict):
 
 def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secrets: Secrets) -> RedditPostCreationResult | None:
 
-    # Building the main creation request body for the API:
+    post_day_obj: datetime = datetime.strptime(post["created_date"], "%Y-%m-%dT%H:%M:%SZ")
+    post_day_str: str = post_day_obj.strftime("%Y-%m-%d").replace('"', '')
+    post_date_id = str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str))
 
-    post_day_str: str = datetime.strptime(post["created_date"], "%Y-%m-%dT%H:%M:%SZ").strftime("%Y-%m-%d").replace('"', '')
-    
-    post_body = [
-        {
-            "type":"node",
-            "query_type":"CREATE",
-            "labels": ['Entity', 'Post', "Reddit"],
-            "properties": {
-                "id": post["id"],
-                "url": post["url"],
-                "title": post["title"],
-                "static_root_url": post["static_root_url"],
-                "static_downloaded":post["static_downloaded_flag"],
-                "static_file_type": post['static_file_type']
-            }
-        },
-        {
-            "type":"node",
-            "query_type":"MERGE",
-            "labels": ["Reddit", "Subreddit", "Entity"],
-            "properties": {
-                "id": str(uuid.uuid3(uuid.NAMESPACE_URL, post["subreddit"])),
-                "subreddit_name": post["subreddit"]
-            }
-        },
-        {
-            "type":"node",
-            "query_type":"MERGE",
-            "labels": ["Date"],
-            "properties": {
-                "id": str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str)),
-                "day": post_day_str
-            }
-        },
-        {
-            "type":"node",
-            "query_type":"MERGE",
-            "labels":["Reddit", "User", "Entity", "Account"],
-            "properties": {
-                "id": reddit_user["id"],
-                "author_name": reddit_user["author_name"],
-                "author_full_name": reddit_user["author_full_name"],
-            }
-        },
-        {
-            "type":"node",
-            "query_type":"MERGE",
-            "labels":["Reddit", "Screenshot", "StaticFile", "Image"],
-            "properties": {
-                "id": post["screenshot_path"],
-                "path": post["screenshot_path"]
-            }
-        },
-        {
-            "type":"node",
-            "query_type":"MERGE",
-            "labels":["Reddit", "Json", "StaticFile"],
-            "properties": {
-                "id": post["json_path"],
-                "path": post["json_path"]
-            }
-        },
-        # EDGES:
-        {
-            "type":"edge",
-            "labels": ["POSTED_ON"],
-            "connection": {
-                "from": post["id"],
-                "to": str(uuid.uuid3(uuid.NAMESPACE_URL, post["subreddit"]))
-            },
-            "properties": {
-                "datetime": post['created_date']
-            }
-        },
-        {
-            "type":"edge",
-            "labels": ["POSTED_ON"],
-            "connection": {
-                "from": post["id"],
-                "to": str(uuid.uuid3(uuid.NAMESPACE_URL, post_day_str))
-            },
-            "properties": {}
-        },
-        {
-            "type":"edge",
-            "labels": ["TAKEN"],
-            "connection": {
-                "from": post["id"],
-                "to": post["screenshot_path"]
-            },
-            "properties": {
-                "datetime": post["created_date"]
-            }
-        },
-        {
-            "type":"edge",
-            "labels": ["EXTRACTED"],
-            "connection": {
-                "from": post["id"],
-                "to": post['json_path']
-            },
-            "properties": {
-                "datetime": post["created_date"]
-            }
-        },
-        {
-            "type":"edge",
-            "labels":["POSTED"],
-            "connection": {
-                "from": reddit_user['id'],
-                "to": post["id"]
-            },
-            "properties": {
-                "datetime": post["created_date"]
-            }
-        }
-    ]
+    post_neo4j_datetime = DateTime(year=post_day_obj.year, month=post_day_obj.month, day=post_day_obj.day)
+    post_w_tz_obj = pytz.timezone("UTC").localize(post_neo4j_datetime)
 
     try:
-        reddit_post_creation_response = requests.post(f"{secrets['neo4j_url']}/v1/api/run_query", json=post_body)
-        reddit_post_creation_response.raise_for_status()
-        created_post: RedditPostDict = reddit_post_creation_response.json()
+        AUTH=(secrets['neo4j_username'], secrets['neo4j_password'])
+        with GraphDatabase.driver(secrets["neo4j_read_url"], auth=AUTH) as driver:
+            driver.verify_connectivity()
+
+            records, summary, keys = driver.execute_query(
+                """
+                MERGE 
+                    (subreddit:Reddit:Subreddit:Entity 
+                        {
+                            id: $subreddit_id, 
+                            subreddit_name: $subreddit_name
+                        }
+                    ),
+                    (date:Date {id: $date_id, day: day}),
+                    (reddit_user:Reddit:User:Entity:Account 
+                        {
+                            id: $reddit_user_id,
+                            author_name: $reddit_user_author_name,
+                            author_full_name: $reddit_user_author_full_name
+                        }
+                    )
+                CREATE
+                    (reddit_screenshot_file:Reddit:Screenshot:StaticFile:Image 
+                        {
+                            id: $screenshot_id, 
+                            path: $screenshot_path
+                        }
+                    ),
+                    (reddit_json:Reddit:Json:StaticFile {id: $json_id, path: $json_path})
+                    (reddit_post:Entity:Post:Reddit 
+                        {
+                            id: $reddit_post_id,
+                            url: $reddit_post_url,
+                            title: $post_title,
+                            static_root_url: $reddit_static_root_url,
+                            static_downloaded: $reddit_static_downloaded_flag,
+                            static_file_type: $reddit_static_file_type
+
+                        }
+                    )
+                    (reddit_post)-[:POSTED_ON 
+                        {
+                            datetime: $reddit_post_created_date
+                        }
+                    ]->(subreddit),
+                    (reddit_post)-[:POSTED_ON]->(date),
+                    (reddit_post)-[:TAKEN {datetime: $reddit_post_created_date}]->(reddit_screenshot_file),
+                    (reddit_post)-[:EXTRACTED {datetime: $reddit_post_created_date}]->(reddit_json),
+                    (reddit_user)-[:POSTED {datetime: $reddit_post_created_date}]->(reddit_post)
+                RETURN
+                    reddit_post,
+                    reddit_user
+                """,
+                subreddit_id=str(uuid.uuid3(uuid.NAMESPACE_URL, post["subreddit"])),
+                subreddit_name=post["subreddit"],
+                date_id=post_date_id,
+                day=post_w_tz_obj,
+                reddit_user_id=reddit_user["id"],
+                reddit_user_author_name=reddit_user["author_name"],
+                reddit_user_author_full_name=reddit_user["author_full_name"],
+                screenshot_id=post["screenshot_path"],
+                screenshot_path=post["screenshot_path"],
+                json_id=post["json_path"],
+                json_path=post["json_path"],
+                reddit_post_id=post["id"],
+                reddit_post_url=post['url'],
+                post_title=post['title'],
+                reddit_static_root_url=post["static_root_url"],
+                reddit_static_downloaded_flag=post["static_downloaded_flag"],
+                reddit_static_file_type=post['static_file_type'],
+                reddit_post_created_date=post_w_tz_obj,
+            )
+
+        created_post = list(records)
+
         logger.info(f"Inserterd reddit post into the database {created_post}")
-        
         return created_post
 
     except requests.HTTPError as e:
         logger.error(
         f"""Unable to create reddit post. Request returned with error: {str(e)} \n
-            - {reddit_post_creation_response.content}  \n
             - request object: {post}
         """)
         return None
@@ -399,18 +359,28 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
     logger.info(f"Found a total of {len(posts_to_ingest)} posts from page {page_url}")
 
     try:
-        current_post_ids = ",".join([post['id']for post in posts_to_ingest])
-        unique_post_response = requests.get(f"{secrets['neo4j_url']}/v1/api/exists", params={'post_ids': current_post_ids})
-        unique_post_response.raise_for_status()
-        unique_post_json: list[dict] = unique_post_response.json()
-        logger.info(f"Response from unique query: \n")
-        pprint.pprint(unique_post_json)
+        AUTH=(secrets['neo4j_username'], secrets['neo4j_password'])
+        with GraphDatabase.driver(secrets["neo4j_read_url"], auth=AUTH) as driver:
+            driver.verify_connectivity()
+            records, _, _ = driver.execute_query(
+                """
+                OPTIONAL MATCH (n:Entity:Post:Reddit)
+                WHERE n.id IN $existing_ids
+                RETURN 
+                    n.id AS id,
+                    n IS NOT NULL AS exists, 
+                    COALESCE(labels(n), []) AS node_labels
 
-    except requests.HTTPError as exception:
-        logger.exception(f"Error in checking existing reddit posts from API {exception}")
-        return
+                """,
+                existing_ids=[post['id']for post in posts_to_ingest],
+                database_="neo4j",
+            )
 
-    duplicate_ids: list[str] = [post["id"] for post in unique_post_json if post['exists'] == True]
+        duplicate_ids = [post.get("id") for post in list(records) if post.get("exists")== True]
+    
+    except Exception as e:
+        pass
+
     unique_posts: list[RedditPostDict] = [post for post in posts_to_ingest if post['id'] not in duplicate_ids]
     logger.info(f"Found {len(unique_posts)} unique posts that are not in the reddit database")
 

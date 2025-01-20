@@ -1,14 +1,8 @@
 from selenium import webdriver
-from selenium.webdriver.common.by import By
 
-import uuid
 from minio import Minio
-from datetime import datetime, timezone
-import pandas as pd
 import argparse
 from loguru import logger
-import sys
-
 from lib.reddit_post_extraction_methods import recursive_insert_raw_reddit_post
 from lib.config import get_secrets, load_config_from_file, Secrets, RedditPipelineConfig
 from lib.ingest_reddit_video import ingest_all_video_data
