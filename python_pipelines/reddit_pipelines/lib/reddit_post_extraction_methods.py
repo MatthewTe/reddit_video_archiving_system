@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import requests
 import io
+import sys
 import random
 import pprint
 import time
@@ -221,8 +222,10 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secret
                             id: $subreddit_id, 
                             subreddit_name: $subreddit_name
                         }
-                    ),
-                    (date:Date {id: $date_id, day: day}),
+                    )
+                MERGE
+                    (date:Date {id: $date_id, day: $day})
+                MERGE
                     (reddit_user:Reddit:User:Entity:Account 
                         {
                             id: $reddit_user_id,
@@ -237,7 +240,7 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secret
                             path: $screenshot_path
                         }
                     ),
-                    (reddit_json:Reddit:Json:StaticFile {id: $json_id, path: $json_path})
+                    (reddit_json:Reddit:Json:StaticFile {id: $json_id, path: $json_path}),
                     (reddit_post:Entity:Post:Reddit 
                         {
                             id: $reddit_post_id,
@@ -248,12 +251,8 @@ def insert_reddit_post(post: RedditPostDict, reddit_user: RedditUserDict, secret
                             static_file_type: $reddit_static_file_type
 
                         }
-                    )
-                    (reddit_post)-[:POSTED_ON 
-                        {
-                            datetime: $reddit_post_created_date
-                        }
-                    ]->(subreddit),
+                    ),
+                    (reddit_post)-[:POSTED_ON {datetime: $reddit_post_created_date}]->(subreddit),
                     (reddit_post)-[:POSTED_ON]->(date),
                     (reddit_post)-[:TAKEN {datetime: $reddit_post_created_date}]->(reddit_screenshot_file),
                     (reddit_post)-[:EXTRACTED {datetime: $reddit_post_created_date}]->(reddit_json),
@@ -360,9 +359,9 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
 
     try:
         AUTH=(secrets['neo4j_username'], secrets['neo4j_password'])
-        with GraphDatabase.driver(secrets["neo4j_read_url"], auth=AUTH) as driver:
-            driver.verify_connectivity()
-            records, _, _ = driver.execute_query(
+        with GraphDatabase.driver(secrets["neo4j_read_url"], auth=AUTH) as graph_driver:
+            graph_driver.verify_connectivity()
+            records, _, _ = graph_driver.execute_query(
                 """
                 OPTIONAL MATCH (n:Entity:Post:Reddit)
                 WHERE n.id IN $existing_ids
@@ -379,7 +378,8 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         duplicate_ids = [post.get("id") for post in list(records) if post.get("exists")== True]
     
     except Exception as e:
-        pass
+        logger.error(f"Could not extract duplicate ids: {e.with_traceback(None)}")
+        return
 
     unique_posts: list[RedditPostDict] = [post for post in posts_to_ingest if post['id'] not in duplicate_ids]
     logger.info(f"Found {len(unique_posts)} unique posts that are not in the reddit database")
@@ -445,8 +445,9 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
         
         logger.info(f"Extracting comments from json post")
         reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream)
-        
         logger.info(f"Making request to API to attach reddit comments to post. Generated json request with {len(reddit_comments_dict)} items")
+
+
         post_comment_attachment_response: RedditCommentAttachmentDict | None = attach_reddit_post_comments(reddit_comments_dict, secrets=secrets)
         if post_comment_attachment_response is None:
             logger.error(f"Error in attaching comments to post")
