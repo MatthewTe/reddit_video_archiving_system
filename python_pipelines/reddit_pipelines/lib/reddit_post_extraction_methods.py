@@ -129,6 +129,7 @@ def get_comments_from_json(post: RedditPostDict, json_bytes_stream: io.BytesIO) 
 
     except Exception as e:
         logger.error(f"Unable to recusrively extract all comments from comments json: {str(e.with_traceback(None))}")
+        logger.error(e)
         return None
     
 def get_post_json(driver, url) -> io.BytesIO | None:
@@ -443,8 +444,7 @@ def recursive_insert_raw_reddit_post(driver: webdriver.Chrome, page_url: str, MI
             logger.error(f"Error in creating post for {post['id']}. Post was not added to the database")
             return
         
-        logger.info(f"Extracting comments from json post")
-        reddit_comments_dict: RedditCommentAttachmentDict = get_comments_from_json(post, json_stream)
+        reddit_comments_dict: list[dict] = get_comments_from_json(post, json_stream)
         logger.info(f"Making request to API to attach reddit comments to post. Generated json request with {len(reddit_comments_dict)} items")
 
 
