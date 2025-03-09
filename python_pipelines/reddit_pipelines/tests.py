@@ -21,6 +21,7 @@ def test_comment_extraction_ingestion():
         parsed_reddit_post, 
         full_post_stream
     )
+    # Leave the old API extraction method - use that format to make neo4j query directly
 
     logger.info(f"Parsed comments from post and json body {reddit_comments_dict}")
     

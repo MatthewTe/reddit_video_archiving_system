@@ -1,5 +1,6 @@
 from neo4j import GraphDatabase
 import uuid
+import json
 
 if __name__ == "__main__":
 
@@ -88,3 +89,23 @@ if __name__ == "__main__":
             reddit_static_file_type=None,
             reddit_post_created_date=None,
         )
+
+
+    {'created_date': '2025-01-19T17:14:14Z',
+    'id': '431c50d6-dcdd-3eaf-b39d-ee7414003032',
+    'json_path': '431c50d6-dcdd-3eaf-b39d-ee7414003032/post.json',
+    'screenshot_path': '431c50d6-dcdd-3eaf-b39d-ee7414003032/screenshot.png',
+    'static_downloaded_flag': False,
+    'static_file_type': 'video',
+    'static_root_url': '431c50d6-dcdd-3eaf-b39d-ee7414003032/',
+    'subreddit': 'CombatFootage',
+    'title': 'French resistance fighters set a German Wehrmacht truck aflame in '
+            'Paris, 1944.',
+    'url': 'https://www.reddit.com/r/CombatFootage/comments/1i53el8/french_resistance_fighters_set_a_german_wehrmacht/'}
+
+    {'author_full_name': 't2_ve6tvku5',
+    'author_name': 'ZERO_PORTRAIT',
+    'id': '54ef2813-af0e-32ea-8a0c-69b3604b1620'}
+
+    with open("../test_data/") as f:
+        pass
